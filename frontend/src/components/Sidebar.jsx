@@ -1,14 +1,17 @@
 function Sidebar({ onNewProject }) {
   return (
-    <aside>
+    <aside className="sidebar">
       <h2>🎬 Cinema AI</h2>
 
-      <button onClick={onNewProject}>
+      <button
+        className="new-project-button"
+        onClick={onNewProject}
+      >
         + Nouveau projet
       </button>
 
-      <nav>
-        <p>Mes projets</p>
+      <nav className="sidebar-nav">
+        <p>📁 Mes projets</p>
       </nav>
     </aside>
   );
