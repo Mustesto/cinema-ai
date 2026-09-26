@@ -22,42 +22,51 @@ function Projects() {
   }
 
   return (
-    <div>
+    <div className="app">
       <Sidebar onNewProject={() => setShowForm(true)} />
 
-      <main>
+      <main className="main">
         <h1>Mes projets</h1>
 
         {projects.length === 0 ? (
           <p>Aucun projet pour le moment.</p>
         ) : (
-          projects.map((project) => (
-            <div key={project.id}>
-              <h3>🎬 {project.name}</h3>
-              <p>0 épisode</p>
-              <button>Ouvrir</button>
-            </div>
-          ))
+          <div className="project-grid">
+            {projects.map((project) => (
+              <div className="project-card" key={project.id}>
+                <h3>🎬 {project.name}</h3>
+                <p>0 épisode</p>
+                <button className="open-button">
+                  Ouvrir
+                </button>
+              </div>
+            ))}
+          </div>
         )}
 
         {showForm && (
-          <div>
+          <div className="form-container">
             <h2>Nouveau projet</h2>
 
             <input
+              className="project-input"
               type="text"
               placeholder="Nom du projet"
               value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
+              onChange={(event) =>
+                setProjectName(event.target.value)
+              }
             />
 
-            <button onClick={() => setShowForm(false)}>
-              Annuler
-            </button>
+            <div className="form-actions">
+              <button onClick={() => setShowForm(false)}>
+                Annuler
+              </button>
 
-            <button onClick={createProject}>
-              Créer
-            </button>
+              <button onClick={createProject}>
+                Créer
+              </button>
+            </div>
           </div>
         )}
       </main>
