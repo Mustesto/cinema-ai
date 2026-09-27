@@ -1,4 +1,4 @@
-```jsx
+
 import { useState } from "react";
 import Libraries from "../components/Libraries.jsx";
 
@@ -2134,4 +2134,4 @@ function Projects() {
 }
 
 export default Projects;
-```
+
