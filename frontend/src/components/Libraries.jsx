@@ -15,6 +15,9 @@ function Libraries({ project, onUpdateProject }) {
   const [characterDescription, setCharacterDescription] =
     useState("");
 
+  const [characterImages, setCharacterImages] =
+    useState([]);
+
   // ==========================
   // LIEUX
   // ==========================
@@ -24,6 +27,9 @@ function Libraries({ project, onUpdateProject }) {
 
   const [locationDescription, setLocationDescription] =
     useState("");
+
+  const [locationImages, setLocationImages] =
+    useState([]);
 
   // ==========================
   // IMAGES
@@ -73,6 +79,33 @@ function Libraries({ project, onUpdateProject }) {
   // PERSONNAGES
   // ==========================
 
+  function handleCharacterImages(event) {
+    const files = Array.from(
+      event.target.files || []
+    );
+
+    const newImages = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+
+    setCharacterImages((previous) => [
+      ...previous,
+      ...newImages,
+    ]);
+
+    event.target.value = "";
+  }
+
+  function removeCharacterImage(id) {
+    setCharacterImages((previous) =>
+      previous.filter(
+        (image) => image.id !== id
+      )
+    );
+  }
+
   function addCharacter() {
     const name = characterName.trim();
 
@@ -83,10 +116,14 @@ function Libraries({ project, onUpdateProject }) {
       name,
       description:
         characterDescription.trim(),
+
+      // Images propres au personnage
+      images: characterImages,
     };
 
     updateProject({
       ...project,
+
       characters: [
         ...(project.characters || []),
         newCharacter,
@@ -95,6 +132,7 @@ function Libraries({ project, onUpdateProject }) {
 
     setCharacterName("");
     setCharacterDescription("");
+    setCharacterImages([]);
   }
 
   function deleteCharacter(id) {
@@ -108,8 +146,9 @@ function Libraries({ project, onUpdateProject }) {
 
     updateProject({
       ...project,
+
       characters:
-        project.characters.filter(
+        (project.characters || []).filter(
           (character) =>
             character.id !== id
         ),
@@ -119,6 +158,33 @@ function Libraries({ project, onUpdateProject }) {
   // ==========================
   // LIEUX
   // ==========================
+
+  function handleLocationImages(event) {
+    const files = Array.from(
+      event.target.files || []
+    );
+
+    const newImages = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+
+    setLocationImages((previous) => [
+      ...previous,
+      ...newImages,
+    ]);
+
+    event.target.value = "";
+  }
+
+  function removeLocationImage(id) {
+    setLocationImages((previous) =>
+      previous.filter(
+        (image) => image.id !== id
+      )
+    );
+  }
 
   function addLocation() {
     const name = locationName.trim();
@@ -130,10 +196,14 @@ function Libraries({ project, onUpdateProject }) {
       name,
       description:
         locationDescription.trim(),
+
+      // Images propres au lieu
+      images: locationImages,
     };
 
     updateProject({
       ...project,
+
       locations: [
         ...(project.locations || []),
         newLocation,
@@ -142,6 +212,7 @@ function Libraries({ project, onUpdateProject }) {
 
     setLocationName("");
     setLocationDescription("");
+    setLocationImages([]);
   }
 
   function deleteLocation(id) {
@@ -155,8 +226,9 @@ function Libraries({ project, onUpdateProject }) {
 
     updateProject({
       ...project,
+
       locations:
-        project.locations.filter(
+        (project.locations || []).filter(
           (location) =>
             location.id !== id
         ),
@@ -164,7 +236,7 @@ function Libraries({ project, onUpdateProject }) {
   }
 
   // ==========================
-  // IMAGES
+  // IMAGES GÉNÉRALES
   // ==========================
 
   function handleImageUpload(event) {
@@ -174,26 +246,17 @@ function Libraries({ project, onUpdateProject }) {
 
     if (files.length === 0) return;
 
-    const newImages = files.map(
-      (file) => ({
-        id:
-          Date.now() +
-          Math.random(),
-
-        name:
-          imageName.trim() ||
-          file.name,
-
-        fileName: file.name,
-
-        url: URL.createObjectURL(
-          file
-        ),
-      })
-    );
+    const newImages = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name:
+        imageName.trim() || file.name,
+      fileName: file.name,
+      url: URL.createObjectURL(file),
+    }));
 
     updateProject({
       ...project,
+
       images: [
         ...(project.images || []),
         ...newImages,
@@ -215,8 +278,9 @@ function Libraries({ project, onUpdateProject }) {
 
     updateProject({
       ...project,
+
       images:
-        project.images.filter(
+        (project.images || []).filter(
           (image) =>
             image.id !== id
         ),
@@ -234,26 +298,17 @@ function Libraries({ project, onUpdateProject }) {
 
     if (files.length === 0) return;
 
-    const newVideos = files.map(
-      (file) => ({
-        id:
-          Date.now() +
-          Math.random(),
-
-        name:
-          videoName.trim() ||
-          file.name,
-
-        fileName: file.name,
-
-        url: URL.createObjectURL(
-          file
-        ),
-      })
-    );
+    const newVideos = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name:
+        videoName.trim() || file.name,
+      fileName: file.name,
+      url: URL.createObjectURL(file),
+    }));
 
     updateProject({
       ...project,
+
       videos: [
         ...(project.videos || []),
         ...newVideos,
@@ -275,6 +330,7 @@ function Libraries({ project, onUpdateProject }) {
 
     updateProject({
       ...project,
+
       videos:
         (project.videos || []).filter(
           (video) =>
@@ -310,50 +366,26 @@ function Libraries({ project, onUpdateProject }) {
       description:
         movementDescription.trim(),
 
-      /*
-       * Destination libre.
-       *
-       * Exemple :
-       * "Porte principale"
-       * "Voiture"
-       * "Table"
-       * "Fenêtre"
-       * etc.
-       */
       destination:
         movementDestination.trim(),
 
-      /*
-       * Aperçu image.
-       */
-      previewImage:
-        movementImage
-          ? {
-              name:
-                movementImage.name,
+      previewImage: movementImage
+        ? {
+            name: movementImage.name,
+            url: URL.createObjectURL(
+              movementImage
+            ),
+          }
+        : null,
 
-              url:
-                URL.createObjectURL(
-                  movementImage
-                ),
-            }
-          : null,
-
-      /*
-       * Vidéo de référence.
-       */
-      previewVideo:
-        movementVideo
-          ? {
-              name:
-                movementVideo.name,
-
-              url:
-                URL.createObjectURL(
-                  movementVideo
-                ),
-            }
-          : null,
+      previewVideo: movementVideo
+        ? {
+            name: movementVideo.name,
+            url: URL.createObjectURL(
+              movementVideo
+            ),
+          }
+        : null,
     };
 
     updateProject({
@@ -369,9 +401,7 @@ function Libraries({ project, onUpdateProject }) {
   }
 
   function updateMovement() {
-    if (!editingMovement) {
-      return;
-    }
+    if (!editingMovement) return;
 
     const name =
       movementName.trim();
@@ -389,40 +419,32 @@ function Libraries({ project, onUpdateProject }) {
       destination:
         movementDestination.trim(),
 
-      previewImage:
-        movementImage
-          ? {
-              name:
-                movementImage.name,
+      previewImage: movementImage
+        ? {
+            name: movementImage.name,
+            url: URL.createObjectURL(
+              movementImage
+            ),
+          }
+        : editingMovement.previewImage ||
+          null,
 
-              url:
-                URL.createObjectURL(
-                  movementImage
-                ),
-            }
-          : editingMovement.previewImage ||
-            null,
-
-      previewVideo:
-        movementVideo
-          ? {
-              name:
-                movementVideo.name,
-
-              url:
-                URL.createObjectURL(
-                  movementVideo
-                ),
-            }
-          : editingMovement.previewVideo ||
-            null,
+      previewVideo: movementVideo
+        ? {
+            name: movementVideo.name,
+            url: URL.createObjectURL(
+              movementVideo
+            ),
+          }
+        : editingMovement.previewVideo ||
+          null,
     };
 
     updateProject({
       ...project,
 
       movements:
-        project.movements.map(
+        (project.movements || []).map(
           (movement) =>
             movement.id ===
             editingMovement.id
@@ -443,9 +465,7 @@ function Libraries({ project, onUpdateProject }) {
   }
 
   function editMovement(movement) {
-    setEditingMovement(
-      movement
-    );
+    setEditingMovement(movement);
 
     setMovementName(
       movement.name || ""
@@ -459,15 +479,6 @@ function Libraries({ project, onUpdateProject }) {
       movement.destination || ""
     );
 
-    /*
-     * On ne peut pas remettre
-     * directement un ancien fichier
-     * dans un input type=file.
-     *
-     * Les références existantes
-     * sont donc conservées si aucun
-     * nouveau fichier n'est choisi.
-     */
     setMovementImage(null);
     setMovementVideo(null);
   }
@@ -485,7 +496,7 @@ function Libraries({ project, onUpdateProject }) {
       ...project,
 
       movements:
-        project.movements.filter(
+        (project.movements || []).filter(
           (movement) =>
             movement.id !== id
         ),
@@ -505,6 +516,10 @@ function Libraries({ project, onUpdateProject }) {
 
   return (
     <div className="libraries">
+
+      {/* ==========================
+          MENU DES BIBLIOTHÈQUES
+          ========================== */}
 
       <div className="library-menu">
 
@@ -562,17 +577,16 @@ function Libraries({ project, onUpdateProject }) {
 
       <div className="library-content">
 
-        {/* ==========================
+        {/* =====================================================
             PERSONNAGES
-            ========================== */}
+            ===================================================== */}
 
         {activeLibrary ===
           "characters" && (
           <section>
 
             <h2>
-              🎭 Bibliothèque des
-              personnages
+              🎭 Bibliothèque des personnages
             </h2>
 
             <input
@@ -602,61 +616,183 @@ function Libraries({ project, onUpdateProject }) {
               rows="4"
             />
 
+            <h3>
+              🖼️ Images du personnage
+            </h3>
+
+            <p>
+              Tu peux ajouter plusieurs
+              images du même personnage.
+            </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={
+                handleCharacterImages
+              }
+            />
+
+            {characterImages.length >
+              0 && (
+              <div
+                className="project-grid"
+              >
+
+                {characterImages.map(
+                  (image) => (
+                    <div
+                      className="project-card"
+                      key={image.id}
+                    >
+
+                      <img
+                        src={image.url}
+                        alt={image.name}
+                        style={{
+                          width:
+                            "100%",
+                          maxHeight:
+                            "180px",
+                          objectFit:
+                            "cover",
+                          borderRadius:
+                            "8px",
+                        }}
+                      />
+
+                      <p>
+                        {image.name}
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          removeCharacterImage(
+                            image.id
+                          )
+                        }
+                      >
+                        🗑️ Retirer
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
+
             <button
               onClick={
                 addCharacter
               }
             >
-              + Ajouter
+              + Ajouter le personnage
             </button>
 
             <hr />
 
-            {
-              (project.characters ||
-                []).map(
-                (character) => (
-                  <div
-                    className="project-card"
-                    key={
-                      character.id
-                    }
-                  >
+            <h3>
+              Personnages enregistrés
+            </h3>
 
-                    <h3>
-                      🎭{" "}
-                      {
-                        character.name
-                      }
-                    </h3>
+            {(project.characters ||
+              []).length === 0 ? (
+              <p>
+                Aucun personnage.
+              </p>
+            ) : (
+              <div
+                className="project-grid"
+              >
 
-                    <p>
-                      {
-                        character.description
-                      }
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        deleteCharacter(
-                          character.id
-                        )
-                      }
+                {project.characters.map(
+                  (character) => (
+                    <div
+                      className="project-card"
+                      key={character.id}
                     >
-                      🗑️ Supprimer
-                    </button>
 
-                  </div>
-                )
-              )
-            }
+                      <h3>
+                        🎭{" "}
+                        {
+                          character.name
+                        }
+                      </h3>
+
+                      {character
+                        .images?.length >
+                        0 && (
+                        <div
+                          style={{
+                            display:
+                              "grid",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(120px, 1fr))",
+                            gap: "8px",
+                          }}
+                        >
+
+                          {character.images.map(
+                            (image) => (
+                              <img
+                                key={
+                                  image.id
+                                }
+                                src={
+                                  image.url
+                                }
+                                alt={
+                                  character.name
+                                }
+                                style={{
+                                  width:
+                                    "100%",
+                                  height:
+                                    "120px",
+                                  objectFit:
+                                    "cover",
+                                  borderRadius:
+                                    "8px",
+                                }}
+                              />
+                            )
+                          )}
+
+                        </div>
+                      )}
+
+                      <p>
+                        {
+                          character.description ||
+                          "Aucune description."
+                        }
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          deleteCharacter(
+                            character.id
+                          )
+                        }
+                      >
+                        🗑️ Supprimer
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
 
           </section>
         )}
 
-        {/* ==========================
+        {/* =====================================================
             LIEUX
-            ========================== */}
+            ===================================================== */}
 
         {activeLibrary ===
           "locations" && (
@@ -693,6 +829,75 @@ function Libraries({ project, onUpdateProject }) {
               rows="4"
             />
 
+            <h3>
+              🖼️ Images du lieu
+            </h3>
+
+            <p>
+              Tu peux ajouter plusieurs
+              images pour représenter le
+              même lieu sous différents
+              angles.
+            </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={
+                handleLocationImages
+              }
+            />
+
+            {locationImages.length >
+              0 && (
+              <div
+                className="project-grid"
+              >
+
+                {locationImages.map(
+                  (image) => (
+                    <div
+                      className="project-card"
+                      key={image.id}
+                    >
+
+                      <img
+                        src={image.url}
+                        alt={image.name}
+                        style={{
+                          width:
+                            "100%",
+                          maxHeight:
+                            "180px",
+                          objectFit:
+                            "cover",
+                          borderRadius:
+                            "8px",
+                        }}
+                      />
+
+                      <p>
+                        {image.name}
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          removeLocationImage(
+                            image.id
+                          )
+                        }
+                      >
+                        🗑️ Retirer
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
+
             <button
               onClick={
                 addLocation
@@ -703,78 +908,126 @@ function Libraries({ project, onUpdateProject }) {
 
             <hr />
 
-            {
-              (project.locations ||
-                []).map(
-                (location) => (
-                  <div
-                    className="project-card"
-                    key={
-                      location.id
-                    }
-                  >
+            <h3>
+              Lieux enregistrés
+            </h3>
 
-                    <h3>
-                      🌍{" "}
-                      {
-                        location.name
-                      }
-                    </h3>
+            {(project.locations ||
+              []).length === 0 ? (
+              <p>
+                Aucun lieu.
+              </p>
+            ) : (
+              <div
+                className="project-grid"
+              >
 
-                    <p>
-                      {
-                        location.description
-                      }
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        deleteLocation(
-                          location.id
-                        )
-                      }
+                {project.locations.map(
+                  (location) => (
+                    <div
+                      className="project-card"
+                      key={location.id}
                     >
-                      🗑️ Supprimer
-                    </button>
 
-                  </div>
-                )
-              )
-            }
+                      <h3>
+                        🌍{" "}
+                        {
+                          location.name
+                        }
+                      </h3>
+
+                      {location
+                        .images?.length >
+                        0 && (
+                        <div
+                          style={{
+                            display:
+                              "grid",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(120px, 1fr))",
+                            gap: "8px",
+                          }}
+                        >
+
+                          {location.images.map(
+                            (image) => (
+                              <img
+                                key={
+                                  image.id
+                                }
+                                src={
+                                  image.url
+                                }
+                                alt={
+                                  location.name
+                                }
+                                style={{
+                                  width:
+                                    "100%",
+                                  height:
+                                    "120px",
+                                  objectFit:
+                                    "cover",
+                                  borderRadius:
+                                    "8px",
+                                }}
+                              />
+                            )
+                          )}
+
+                        </div>
+                      )}
+
+                      <p>
+                        {
+                          location.description ||
+                          "Aucune description."
+                        }
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          deleteLocation(
+                            location.id
+                          )
+                        }
+                      >
+                        🗑️ Supprimer
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
 
           </section>
         )}
 
-        {/* ==========================
+        {/* =====================================================
             MOUVEMENTS
-            ========================== */}
+            ===================================================== */}
 
         {activeLibrary ===
           "movements" && (
           <section>
 
             <h2>
-              🎞️ Bibliothèque des
-              mouvements
+              🎞️ Bibliothèque des mouvements
             </h2>
 
             <p>
-              Tu peux créer autant de
-              mouvements que nécessaire.
-              Chaque mouvement peut avoir
-              une destination, une image
-              d'aperçu et une vidéo de
-              référence.
+              Les mouvements peuvent être
+              utilisés dans plusieurs scènes.
             </p>
 
             <div className="form-container">
 
               <h3>
-                {
-                  editingMovement
-                    ? "✏️ Modifier le mouvement"
-                    : "➕ Ajouter un mouvement"
-                }
+                {editingMovement
+                  ? "✏️ Modifier le mouvement"
+                  : "➕ Ajouter un mouvement"}
               </h3>
 
               <input
@@ -821,17 +1074,9 @@ function Libraries({ project, onUpdateProject }) {
                 }
               />
 
-              <p>
-                L'utilisateur peut écrire
-                librement la destination.
-                Plus tard, l'IA pourra
-                proposer des destinations
-                adaptées au contexte.
-              </p>
-
-              <label>
+              <h4>
                 🖼️ Image d'aperçu
-              </label>
+              </h4>
 
               <input
                 type="file"
@@ -845,17 +1090,28 @@ function Libraries({ project, onUpdateProject }) {
               />
 
               {movementImage && (
-                <p>
-                  🖼️{" "}
-                  {
-                    movementImage.name
-                  }
-                </p>
+                <img
+                  src={URL.createObjectURL(
+                    movementImage
+                  )}
+                  alt="Aperçu"
+                  style={{
+                    width: "200px",
+                    maxHeight:
+                      "150px",
+                    objectFit:
+                      "cover",
+                    borderRadius:
+                      "8px",
+                    marginTop:
+                      "10px",
+                  }}
+                />
               )}
 
-              <label>
+              <h4>
                 🎥 Vidéo de référence
-              </label>
+              </h4>
 
               <input
                 type="file"
@@ -869,12 +1125,19 @@ function Libraries({ project, onUpdateProject }) {
               />
 
               {movementVideo && (
-                <p>
-                  🎥{" "}
-                  {
-                    movementVideo.name
-                  }
-                </p>
+                <video
+                  controls
+                  src={URL.createObjectURL(
+                    movementVideo
+                  )}
+                  style={{
+                    width: "280px",
+                    maxHeight:
+                      "180px",
+                    marginTop:
+                      "10px",
+                  }}
+                />
               )}
 
               <div
@@ -896,11 +1159,9 @@ function Libraries({ project, onUpdateProject }) {
                     saveMovement
                   }
                 >
-                  {
-                    editingMovement
-                      ? "Enregistrer"
-                      : "Ajouter le mouvement"
-                  }
+                  {editingMovement
+                    ? "Enregistrer"
+                    : "Ajouter le mouvement"}
                 </button>
 
               </div>
@@ -913,152 +1174,134 @@ function Libraries({ project, onUpdateProject }) {
               🎞️ Mouvements enregistrés
             </h3>
 
-            {
-              (project.movements ||
-                []).length ===
-              0 ? (
-                <p>
-                  Aucun mouvement
-                  pour le moment.
-                </p>
-              ) : (
-                <div className="project-grid">
+            {(project.movements ||
+              []).length === 0 ? (
+              <p>
+                Aucun mouvement pour le
+                moment.
+              </p>
+            ) : (
+              <div
+                className="project-grid"
+              >
 
-                  {
-                    project.movements.map(
-                      (
-                        movement
-                      ) => (
-                        <div
-                          className="project-card"
-                          key={
-                            movement.id
+                {project.movements.map(
+                  (movement) => (
+                    <div
+                      className="project-card"
+                      key={movement.id}
+                    >
+
+                      <h3>
+                        🎞️{" "}
+                        {
+                          movement.name
+                        }
+                      </h3>
+
+                      {movement
+                        .previewImage
+                        ?.url && (
+                        <img
+                          src={
+                            movement
+                              .previewImage
+                              .url
+                          }
+                          alt={
+                            movement.name
+                          }
+                          style={{
+                            width:
+                              "100%",
+                            maxHeight:
+                              "220px",
+                            objectFit:
+                              "cover",
+                            borderRadius:
+                              "8px",
+                          }}
+                        />
+                      )}
+
+                      <p>
+                        {
+                          movement.description ||
+                          "Aucune description."
+                        }
+                      </p>
+
+                      <p>
+                        🎯{" "}
+                        <strong>
+                          Destination :
+                        </strong>{" "}
+                        {
+                          movement.destination ||
+                          "Aucune destination"
+                        }
+                      </p>
+
+                      {movement
+                        .previewVideo
+                        ?.url && (
+                        <video
+                          controls
+                          src={
+                            movement
+                              .previewVideo
+                              .url
+                          }
+                          style={{
+                            width:
+                              "100%",
+                            maxHeight:
+                              "240px",
+                            borderRadius:
+                              "8px",
+                          }}
+                        />
+                      )}
+
+                      <div
+                        className="form-actions"
+                      >
+
+                        <button
+                          onClick={() =>
+                            editMovement(
+                              movement
+                            )
                           }
                         >
+                          ✏️ Modifier
+                        </button>
 
-                          <h3>
-                            🎞️{" "}
-                            {
-                              movement.name
-                            }
-                          </h3>
+                        <button
+                          onClick={() =>
+                            deleteMovement(
+                              movement.id
+                            )
+                          }
+                        >
+                          🗑️ Supprimer
+                        </button>
 
-                          {movement
-                            .previewImage
-                            ?.url && (
-                            <img
-                              src={
-                                movement
-                                  .previewImage
-                                  .url
-                              }
-                              alt={
-                                movement.name
-                              }
-                              style={{
-                                width:
-                                  "100%",
-                                maxHeight:
-                                  "220px",
-                                objectFit:
-                                  "cover",
-                                borderRadius:
-                                  "8px",
-                                marginBottom:
-                                  "10px",
-                              }}
-                            />
-                          )}
+                      </div>
 
-                          <p>
-                            {
-                              movement.description ||
-                              "Aucune description."
-                            }
-                          </p>
+                    </div>
+                  )
+                )}
 
-                          <p>
-                            🎯{" "}
-                            <strong>
-                              Destination :
-                            </strong>{" "}
-                            {
-                              movement.destination ||
-                              "Aucune destination"
-                            }
-                          </p>
-
-                          {movement
-                            .previewVideo
-                            ?.url && (
-                            <div>
-
-                              <p>
-                                🎥 Vidéo de
-                                référence
-                              </p>
-
-                              <video
-                                controls
-                                style={{
-                                  width:
-                                    "100%",
-                                  maxHeight:
-                                    "240px",
-                                  borderRadius:
-                                    "8px",
-                                }}
-                                src={
-                                  movement
-                                    .previewVideo
-                                    .url
-                                }
-                              />
-
-                            </div>
-                          )}
-
-                          <div
-                            className="form-actions"
-                          >
-
-                            <button
-                              onClick={() =>
-                                editMovement(
-                                  movement
-                                )
-                              }
-                            >
-                              ✏️ Modifier
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                deleteMovement(
-                                  movement.id
-                                )
-                              }
-                            >
-                              🗑️ Supprimer
-                            </button>
-
-                          </div>
-
-                        </div>
-                      )
-                    )
-                  }
-
-                </div>
-              )
-            }
+              </div>
+            )}
 
           </section>
         )}
 
-        {/* ==========================
+        {/* =====================================================
             IMAGES
-            ========================== */}
+            ===================================================== */}
 
         {activeLibrary ===
           "images" && (
@@ -1092,70 +1335,60 @@ function Libraries({ project, onUpdateProject }) {
 
             <hr />
 
-            <div className="project-grid">
+            <div
+              className="project-grid"
+            >
 
-              {
-                (project.images ||
-                  []).map(
-                  (image) => (
-                    <div
-                      className="project-card"
-                      key={
+              {(project.images ||
+                []).map((image) => (
+                <div
+                  className="project-card"
+                  key={image.id}
+                >
+
+                  <h3>
+                    🖼️{" "}
+                    {image.name}
+                  </h3>
+
+                  {image.url && (
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      style={{
+                        width:
+                          "100%",
+                        maxHeight:
+                          "220px",
+                        objectFit:
+                          "cover",
+                        borderRadius:
+                          "8px",
+                      }}
+                    />
+                  )}
+
+                  <button
+                    onClick={() =>
+                      deleteImage(
                         image.id
-                      }
-                    >
+                      )
+                    }
+                  >
+                    🗑️ Supprimer
+                  </button>
 
-                      <h3>
-                        🖼️{" "}
-                        {
-                          image.name
-                        }
-                      </h3>
-
-                      {image.url && (
-                        <img
-                          src={
-                            image.url
-                          }
-                          alt={
-                            image.name
-                          }
-                          style={{
-                            width:
-                              "100%",
-                            maxHeight:
-                              "220px",
-                            objectFit:
-                              "cover",
-                            borderRadius:
-                              "8px",
-                          }}
-                        />
-                      )}
-
-                      <button
-                        onClick={() =>
-                          deleteImage(
-                            image.id
-                          )
-                        }
-                      >
-                        🗑️ Supprimer
-                      </button>
-
-                    </div>
-                  )
-                )
-              }
+                </div>
+              ))}
 
             </div>
 
           </section>
         )}
 
-        {/* ==========================
+        {/* =====================================================
             VIDÉOS
-            ========================== */}
+            ===================================================== */}
 
         {activeLibrary ===
           "videos" && (
@@ -1189,57 +1422,49 @@ function Libraries({ project, onUpdateProject }) {
 
             <hr />
 
-            <div className="project-grid">
+            <div
+              className="project-grid"
+            >
 
-              {
-                (project.videos ||
-                  []).map(
-                  (video) => (
-                    <div
-                      className="project-card"
-                      key={
+              {(project.videos ||
+                []).map((video) => (
+                <div
+                  className="project-card"
+                  key={video.id}
+                >
+
+                  <h3>
+                    🎥{" "}
+                    {video.name}
+                  </h3>
+
+                  {video.url && (
+                    <video
+                      controls
+                      src={video.url}
+                      style={{
+                        width:
+                          "100%",
+                        maxHeight:
+                          "240px",
+                        borderRadius:
+                          "8px",
+                      }}
+                    />
+                  )}
+
+                  <button
+                    onClick={() =>
+                      deleteVideo(
                         video.id
-                      }
-                    >
+                      )
+                    }
+                  >
+                    🗑️ Supprimer
+                  </button>
 
-                      <h3>
-                        🎥{" "}
-                        {
-                          video.name
-                        }
-                      </h3>
-
-                      {video.url && (
-                        <video
-                          controls
-                          style={{
-                            width:
-                              "100%",
-                            maxHeight:
-                              "240px",
-                            borderRadius:
-                              "8px",
-                          }}
-                          src={
-                            video.url
-                          }
-                        />
-                      )}
-
-                      <button
-                        onClick={() =>
-                          deleteVideo(
-                            video.id
-                          )
-                        }
-                      >
-                        🗑️ Supprimer
-                      </button>
-
-                    </div>
-                  )
-                )
-              }
+                </div>
+              ))}
 
             </div>
 
