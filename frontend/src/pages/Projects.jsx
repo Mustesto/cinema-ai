@@ -1,3 +1,4 @@
+```jsx
 import { useState } from "react";
 import Libraries from "../components/Libraries.jsx";
 
@@ -13,38 +14,23 @@ function Projects() {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
   const [episodeTitle, setEpisodeTitle] = useState("");
-  const [episodeDescription, setEpisodeDescription] =
-    useState("");
-  const [showEpisodeForm, setShowEpisodeForm] =
-    useState(false);
+  const [episodeDescription, setEpisodeDescription] = useState("");
+  const [showEpisodeForm, setShowEpisodeForm] = useState(false);
 
-  const [showSceneForm, setShowSceneForm] =
-    useState(false);
-  const [editingScene, setEditingScene] =
-    useState(null);
+  const [showSceneForm, setShowSceneForm] = useState(false);
+  const [editingScene, setEditingScene] = useState(null);
 
   const [sceneTitle, setSceneTitle] = useState("");
-  const [sceneDescription, setSceneDescription] =
-    useState("");
-  const [sceneAction, setSceneAction] =
-    useState("");
-  const [sceneDialogue, setSceneDialogue] =
-    useState("");
-  const [sceneStyle, setSceneStyle] =
-    useState("");
-  const [sceneStyleImages, setSceneStyleImages] =
-    useState([]);
-  const [sceneDuration, setSceneDuration] =
-    useState("5");
+  const [sceneDescription, setSceneDescription] = useState("");
+  const [sceneAction, setSceneAction] = useState("");
+  const [sceneDialogue, setSceneDialogue] = useState("");
+  const [sceneStyle, setSceneStyle] = useState("");
+  const [sceneStyleImages, setSceneStyleImages] = useState([]);
+  const [sceneDuration, setSceneDuration] = useState("5");
 
-  const [selectedCharacterIds, setSelectedCharacterIds] =
-    useState([]);
-
-  const [selectedLocationId, setSelectedLocationId] =
-    useState("");
-
-  const [selectedMovementIds, setSelectedMovementIds] =
-    useState([]);
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState([]);
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedMovementIds, setSelectedMovementIds] = useState([]);
 
   /*
    * ==========================
@@ -60,12 +46,10 @@ function Projects() {
     const newProject = {
       id: Date.now(),
       name,
-
       characters: [],
       locations: [],
       images: [],
       movements: [],
-
       episodes: [],
     };
 
@@ -80,8 +64,8 @@ function Projects() {
 
   function openProject(project) {
     setSelectedProject(project);
-    setActiveSection("project");
     setSelectedEpisode(null);
+    setActiveSection("project");
   }
 
   function returnToProjects() {
@@ -148,7 +132,6 @@ function Projects() {
 
     const updatedProject = {
       ...selectedProject,
-
       episodes: [
         ...selectedProject.episodes,
         newEpisode,
@@ -199,34 +182,22 @@ function Projects() {
     setEditingScene(scene);
 
     setSceneTitle(scene.title || "");
-    setSceneDescription(
-      scene.description || ""
-    );
-
+    setSceneDescription(scene.description || "");
     setSceneAction(scene.action || "");
     setSceneDialogue(scene.dialogue || "");
 
-    setSceneStyle(
-      scene.style?.text || ""
-    );
+    setSceneStyle(scene.style?.text || "");
 
     setSceneStyleImages(
       scene.style?.images || []
     );
 
-    setSceneDuration(
-      scene.duration || "5"
-    );
+    setSceneDuration(scene.duration || "5");
 
     setSelectedCharacterIds(
       scene.characterIds || []
     );
 
-    /*
-     * IMPORTANT :
-     * Les valeurs du select HTML sont
-     * toujours traitées comme des strings.
-     */
     setSelectedLocationId(
       scene.locationId !== undefined &&
       scene.locationId !== null
@@ -243,11 +214,9 @@ function Projects() {
 
   function toggleCharacter(characterId) {
     setSelectedCharacterIds((previous) => {
-      const id = String(characterId);
-
       if (previous.includes(characterId)) {
         return previous.filter(
-          (item) => item !== characterId
+          (id) => id !== characterId
         );
       }
 
@@ -257,9 +226,15 @@ function Projects() {
 
   function toggleMovement(movementId) {
     setSelectedMovementIds((previous) => {
-      if (previous.includes(movementId)) {
+      const exists = previous.some(
+        (id) =>
+          String(id) === String(movementId)
+      );
+
+      if (exists) {
         return previous.filter(
-          (id) => id !== movementId
+          (id) =>
+            String(id) !== String(movementId)
         );
       }
 
@@ -318,9 +293,9 @@ function Projects() {
         selectedCharacterIds,
 
       /*
-       * On sauvegarde l'ID du lieu comme
-       * chaîne pour rester compatible
-       * avec le select HTML.
+       * Le lieu est sauvegardé comme string.
+       * Cela évite le problème de comparaison
+       * string / number du select HTML.
        */
       locationId:
         selectedLocationId
@@ -374,13 +349,11 @@ function Projects() {
   function deleteScene(sceneId) {
     if (!selectedEpisode) return;
 
-    if (
-      !window.confirm(
-        "Supprimer cette scène ?"
-      )
-    ) {
-      return;
-    }
+    const confirmed = window.confirm(
+      "Supprimer cette scène ?"
+    );
+
+    if (!confirmed) return;
 
     const updatedEpisode = {
       ...selectedEpisode,
@@ -479,10 +452,14 @@ function Projects() {
 
         <hr />
 
-        <h3>Mes projets</h3>
+        <h3>
+          Mes projets
+        </h3>
 
         {projects.length === 0 ? (
-          <p>Aucun projet</p>
+          <p>
+            Aucun projet
+          </p>
         ) : (
           projects.map((project) => (
             <button
@@ -494,7 +471,7 @@ function Projects() {
                 display: "block",
                 width: "100%",
                 textAlign: "left",
-                marginBottom: "5px",
+                marginBottom: "6px",
               }}
             >
               🎬 {project.name}
@@ -547,6 +524,157 @@ function Projects() {
             project={selectedProject}
             onUpdateProject={updateProject}
           />
+
+        </main>
+
+      </div>
+    );
+  }
+
+  /*
+   * ==========================
+   * LISTE DES ÉPISODES
+   * ==========================
+   */
+
+  if (
+    selectedProject &&
+    activeSection === "episodes"
+  ) {
+    return (
+      <div className="app">
+
+        <SidebarMenu />
+
+        <main className="main">
+
+          <button
+            onClick={() =>
+              goToSection("project")
+            }
+          >
+            ← Retour au projet
+          </button>
+
+          <h1>
+            🎬 Épisodes
+          </h1>
+
+          <p>
+            {selectedProject.name}
+          </p>
+
+          {selectedProject.episodes.length ===
+          0 ? (
+            <p>
+              Aucun épisode pour le moment.
+            </p>
+          ) : (
+            <div className="project-grid">
+
+              {selectedProject.episodes.map(
+                (episode, index) => (
+                  <div
+                    className="project-card"
+                    key={episode.id}
+                  >
+
+                    <h3>
+                      🎬 Épisode {index + 1}
+                    </h3>
+
+                    <h4>
+                      {episode.title}
+                    </h4>
+
+                    <p>
+                      {episode.description ||
+                        "Aucune description."}
+                    </p>
+
+                    <p>
+                      🎬{" "}
+                      {episode.scenes.length} scène(s)
+                    </p>
+
+                    <button
+                      onClick={() =>
+                        openEpisode(
+                          episode
+                        )
+                      }
+                    >
+                      Ouvrir
+                    </button>
+
+                  </div>
+                )
+              )}
+
+            </div>
+          )}
+
+          <button
+            onClick={() =>
+              setShowEpisodeForm(true)
+            }
+          >
+            + Nouvel épisode
+          </button>
+
+          {showEpisodeForm && (
+            <div className="form-container">
+
+              <h2>
+                Nouvel épisode
+              </h2>
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Titre"
+                value={episodeTitle}
+                onChange={(event) =>
+                  setEpisodeTitle(
+                    event.target.value
+                  )
+                }
+              />
+
+              <textarea
+                className="project-input"
+                placeholder="Description"
+                value={episodeDescription}
+                onChange={(event) =>
+                  setEpisodeDescription(
+                    event.target.value
+                  )
+                }
+                rows="4"
+              />
+
+              <div
+                className="form-actions"
+              >
+
+                <button
+                  onClick={() =>
+                    setShowEpisodeForm(false)
+                  }
+                >
+                  Annuler
+                </button>
+
+                <button
+                  onClick={createEpisode}
+                >
+                  Créer
+                </button>
+
+              </div>
+
+            </div>
+          )}
 
         </main>
 
@@ -719,7 +847,7 @@ function Projects() {
               <input
                 className="project-input"
                 type="text"
-                placeholder="Titre"
+                placeholder="Titre de la scène"
                 value={sceneTitle}
                 onChange={(event) =>
                   setSceneTitle(
@@ -730,7 +858,7 @@ function Projects() {
 
               <textarea
                 className="project-input"
-                placeholder="Description"
+                placeholder="Description de la scène"
                 value={sceneDescription}
                 onChange={(event) =>
                   setSceneDescription(
@@ -763,10 +891,15 @@ function Projects() {
                         margin: "8px 0",
                       }}
                     >
+
                       <input
                         type="checkbox"
-                        checked={selectedCharacterIds.includes(
-                          character.id
+                        checked={selectedCharacterIds.some(
+                          (id) =>
+                            String(id) ===
+                            String(
+                              character.id
+                            )
                         )}
                         onChange={() =>
                           toggleCharacter(
@@ -777,6 +910,7 @@ function Projects() {
 
                       {" "}
                       🎭 {character.name}
+
                     </label>
                   )
                 )
@@ -1020,9 +1154,7 @@ function Projects() {
 
               <button
                 onClick={() =>
-                  goToSection(
-                    "libraries"
-                  )
+                  goToSection("libraries")
                 }
               >
                 Ouvrir
@@ -1040,9 +1172,7 @@ function Projects() {
 
               <button
                 onClick={() =>
-                  goToSection(
-                    "libraries"
-                  )
+                  goToSection("libraries")
                 }
               >
                 Ouvrir
@@ -1060,9 +1190,7 @@ function Projects() {
 
               <button
                 onClick={() =>
-                  goToSection(
-                    "libraries"
-                  )
+                  goToSection("libraries")
                 }
               >
                 Ouvrir
@@ -1080,9 +1208,7 @@ function Projects() {
 
               <button
                 onClick={() =>
-                  goToSection(
-                    "libraries"
-                  )
+                  goToSection("libraries")
                 }
               >
                 Ouvrir
@@ -1113,8 +1239,7 @@ function Projects() {
                   >
 
                     <h3>
-                      🎬 Épisode{" "}
-                      {index + 1}
+                      🎬 Épisode {index + 1}
                     </h3>
 
                     <p>
@@ -1359,3 +1484,4 @@ function Projects() {
 }
 
 export default Projects;
+```
