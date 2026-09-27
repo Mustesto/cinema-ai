@@ -6,65 +6,64 @@ function Projects() {
   const [projects, setProjects] = useState([]);
 
   const [projectName, setProjectName] = useState("");
-  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [showProjectForm, setShowProjectForm] =
+    useState(false);
 
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [activeSection, setActiveSection] = useState("project");
+  const [selectedProject, setSelectedProject] =
+    useState(null);
 
-  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const [activeSection, setActiveSection] =
+    useState("project");
 
-  const [episodeTitle, setEpisodeTitle] = useState("");
+  const [selectedEpisode, setSelectedEpisode] =
+    useState(null);
+
+  const [episodeTitle, setEpisodeTitle] =
+    useState("");
+
   const [episodeDescription, setEpisodeDescription] =
     useState("");
+
   const [showEpisodeForm, setShowEpisodeForm] =
     useState(false);
 
+  // ==========================
+  // FORMULAIRE SCÈNE
+  // ==========================
+
   const [showSceneForm, setShowSceneForm] =
     useState(false);
+
   const [editingScene, setEditingScene] =
     useState(null);
 
   const [sceneTitle, setSceneTitle] =
     useState("");
+
   const [sceneDescription, setSceneDescription] =
     useState("");
+
   const [sceneAction, setSceneAction] =
     useState("");
+
   const [sceneDialogue, setSceneDialogue] =
     useState("");
+
   const [sceneStyle, setSceneStyle] =
     useState("");
+
   const [sceneStyleImages, setSceneStyleImages] =
     useState([]);
+
   const [sceneDuration, setSceneDuration] =
     useState("5");
 
-  // Plusieurs personnages
   const [selectedCharacterIds, setSelectedCharacterIds] =
     useState([]);
 
-  // Plusieurs lieux
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
 
-  /*
-   * Mouvements de la scène.
-   *
-   * Exemple :
-   *
-   * [
-   *   {
-   *     id: 10,
-   *     destination: "Porte principale"
-   *   },
-   *   {
-   *     id: 20,
-   *     destination: "Intérieur du café"
-   *   }
-   * ]
-   *
-   * L'ordre du tableau = ordre des mouvements.
-   */
   const [sceneMovements, setSceneMovements] =
     useState([]);
 
@@ -122,7 +121,7 @@ function Projects() {
 
     if (selectedEpisode) {
       const updatedEpisode =
-        updatedProject.episodes.find(
+        (updatedProject.episodes || []).find(
           (episode) =>
             episode.id === selectedEpisode.id
         );
@@ -149,7 +148,7 @@ function Projects() {
   }
 
   // ==========================
-  // EPISODES
+  // ÉPISODES
   // ==========================
 
   function createEpisode() {
@@ -160,19 +159,18 @@ function Projects() {
     const newEpisode = {
       id: Date.now(),
       title,
-      description: episodeDescription.trim(),
+      description:
+        episodeDescription.trim(),
       scenes: [],
     };
 
-    const updatedProject = {
+    updateProject({
       ...selectedProject,
       episodes: [
-        ...selectedProject.episodes,
+        ...(selectedProject.episodes || []),
         newEpisode,
       ],
-    };
-
-    updateProject(updatedProject);
+    });
 
     setEpisodeTitle("");
     setEpisodeDescription("");
@@ -185,7 +183,7 @@ function Projects() {
   }
 
   // ==========================
-  // SCÈNE
+  // SCÈNES
   // ==========================
 
   function resetSceneForm() {
@@ -214,18 +212,29 @@ function Projects() {
     setEditingScene(scene);
 
     setSceneTitle(scene.title || "");
-    setSceneDescription(scene.description || "");
+    setSceneDescription(
+      scene.description || ""
+    );
+
     setSceneAction(scene.action || "");
     setSceneDialogue(scene.dialogue || "");
-    setSceneStyle(scene.style?.text || "");
-    setSceneStyleImages(scene.style?.images || []);
-    setSceneDuration(scene.duration || "5");
+
+    setSceneStyle(
+      scene.style?.text || ""
+    );
+
+    setSceneStyleImages(
+      scene.style?.images || []
+    );
+
+    setSceneDuration(
+      scene.duration || "5"
+    );
 
     setSelectedCharacterIds(
       scene.characterIds || []
     );
 
-    // Compatibilité avec les anciennes scènes
     if (Array.isArray(scene.locationIds)) {
       setSelectedLocationIds(
         scene.locationIds
@@ -241,19 +250,6 @@ function Projects() {
       setSelectedLocationIds([]);
     }
 
-    /*
-     * Nouveau format des mouvements :
-     *
-     * movementSteps: [
-     *   {
-     *     id: bibliothèqueMovementId,
-     *     destination: "Porte"
-     *   }
-     * ]
-     *
-     * Compatibilité avec l'ancien
-     * movementIds.
-     */
     if (
       Array.isArray(scene.movementSteps)
     ) {
@@ -267,7 +263,10 @@ function Projects() {
         scene.movementIds.map(
           (movementId) => {
             const movement =
-              selectedProject?.movements?.find(
+              (
+                selectedProject?.movements ||
+                []
+              ).find(
                 (item) =>
                   String(item.id) ===
                   String(movementId)
@@ -358,35 +357,21 @@ function Projects() {
           String(movement.id)
       );
 
-    if (alreadyAdded) {
-      return;
-    }
-
-    /*
-     * La destination de la bibliothèque
-     * sert de destination initiale.
-     *
-     * L'utilisateur peut ensuite
-     * la modifier uniquement pour
-     * cette scène.
-     */
-    const sceneMovement = {
-      id: movement.id,
-      destination:
-        movement.destination || "",
-    };
+    if (alreadyAdded) return;
 
     setSceneMovements(
       (previous) => [
         ...previous,
-        sceneMovement,
+        {
+          id: movement.id,
+          destination:
+            movement.destination || "",
+        },
       ]
     );
   }
 
-  function removeMovementFromScene(
-    index
-  ) {
+  function removeMovementFromScene(index) {
     setSceneMovements(
       (previous) =>
         previous.filter(
@@ -419,9 +404,7 @@ function Projects() {
 
     setSceneMovements(
       (previous) => {
-        const newList = [
-          ...previous,
-        ];
+        const newList = [...previous];
 
         const temporary =
           newList[index - 1];
@@ -447,9 +430,7 @@ function Projects() {
 
     setSceneMovements(
       (previous) => {
-        const newList = [
-          ...previous,
-        ];
+        const newList = [...previous];
 
         const temporary =
           newList[index + 1];
@@ -480,9 +461,7 @@ function Projects() {
           Date.now() +
           Math.random(),
         name: file.name,
-        url: URL.createObjectURL(
-          file
-        ),
+        url: URL.createObjectURL(file),
       })
     );
 
@@ -492,6 +471,8 @@ function Projects() {
         ...newImages,
       ]
     );
+
+    event.target.value = "";
   }
 
   // ==========================
@@ -519,10 +500,8 @@ function Projects() {
       description:
         sceneDescription.trim(),
 
-      /*
-       * Description complète
-       * de toute la scène.
-       */
+      // Description complète
+      // de toute la scène
       action:
         sceneAction.trim(),
 
@@ -532,26 +511,18 @@ function Projects() {
       duration:
         sceneDuration,
 
+      // Plusieurs personnages
       characterIds:
-        selectedCharacterIds,
+        [...selectedCharacterIds],
 
+      // Plusieurs lieux
       locationIds:
-        selectedLocationIds,
+        [...selectedLocationIds],
 
-      /*
-       * Nouveau système.
-       *
-       * L'ordre du tableau est
-       * l'ordre d'exécution.
-       */
+      // Mouvements ordonnés
       movementSteps:
-        sceneMovements,
+        [...sceneMovements],
 
-      /*
-       * On conserve aussi movementIds
-       * pour faciliter la compatibilité
-       * avec les anciennes données.
-       */
       movementIds:
         sceneMovements.map(
           (movement) =>
@@ -563,7 +534,7 @@ function Projects() {
           sceneStyle.trim(),
 
         images:
-          sceneStyleImages,
+          [...sceneStyleImages],
       },
     };
 
@@ -579,7 +550,7 @@ function Projects() {
                 : scene
           )
         : [
-            ...selectedEpisode.scenes,
+            ...(selectedEpisode.scenes || []),
             newScene,
           ],
     };
@@ -588,7 +559,10 @@ function Projects() {
       ...selectedProject,
 
       episodes:
-        selectedProject.episodes.map(
+        (
+          selectedProject.episodes ||
+          []
+        ).map(
           (episode) =>
             episode.id ===
             updatedEpisode.id
@@ -613,9 +587,7 @@ function Projects() {
   // ==========================
 
   function deleteScene(sceneId) {
-    if (!selectedEpisode) {
-      return;
-    }
+    if (!selectedEpisode) return;
 
     if (
       !window.confirm(
@@ -664,7 +636,6 @@ function Projects() {
   function SidebarMenu() {
     return (
       <aside className="sidebar">
-
         <h2>
           🎬 Cinema AI
         </h2>
@@ -744,8 +715,7 @@ function Projects() {
           Mes projets
         </h3>
 
-        {projects.length ===
-        0 ? (
+        {projects.length === 0 ? (
           <p>
             Aucun projet
           </p>
@@ -786,7 +756,6 @@ function Projects() {
         >
           + Nouveau projet
         </button>
-
       </aside>
     );
   }
@@ -802,11 +771,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={() =>
               goToSection(
@@ -829,15 +796,13 @@ function Projects() {
               updateProject
             }
           />
-
         </main>
-
       </div>
     );
   }
 
   // ==========================
-  // ÉPISODES
+  // LISTE DES ÉPISODES
   // ==========================
 
   if (
@@ -847,11 +812,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={() =>
               goToSection(
@@ -866,79 +829,69 @@ function Projects() {
             🎬 Épisodes
           </h1>
 
-          {
-            selectedProject
-              .episodes.length ===
-            0 ? (
-              <p>
-                Aucun épisode.
-              </p>
-            ) : (
-              <div className="project-grid">
+          {(
+            selectedProject.episodes ||
+            []
+          ).length === 0 ? (
+            <p>
+              Aucun épisode.
+            </p>
+          ) : (
+            <div className="project-grid">
+              {selectedProject.episodes.map(
+                (
+                  episode,
+                  index
+                ) => (
+                  <div
+                    className="project-card"
+                    key={
+                      episode.id
+                    }
+                  >
+                    <h3>
+                      🎬 Épisode{" "}
+                      {index + 1}
+                    </h3>
 
-                {
-                  selectedProject
-                    .episodes.map(
-                      (
-                        episode,
-                        index
-                      ) => (
-                        <div
-                          className="project-card"
-                          key={
-                            episode.id
-                          }
-                        >
+                    <h4>
+                      {
+                        episode.title
+                      }
+                    </h4>
 
-                          <h3>
-                            🎬 Épisode{" "}
-                            {
-                              index +
-                              1
-                            }
-                          </h3>
+                    <p>
+                      {
+                        episode.description ||
+                        "Aucune description."
+                      }
+                    </p>
 
-                          <h4>
-                            {
-                              episode.title
-                            }
-                          </h4>
+                    <p>
+                      🎬{" "}
+                      {
+                        (
+                          episode.scenes ||
+                          []
+                        ).length
+                      }{" "}
+                      scène(s)
+                    </p>
 
-                          <p>
-                            {
-                              episode.description ||
-                              "Aucune description."
-                            }
-                          </p>
-
-                          <p>
-                            🎬{" "}
-                            {
-                              episode
-                                .scenes
-                                .length
-                            }{" "}
-                            scène(s)
-                          </p>
-
-                          <button
-                            onClick={() =>
-                              openEpisode(
-                                episode
-                              )
-                            }
-                          >
-                            Ouvrir
-                          </button>
-
-                        </div>
-                      )
-                    )
-                }
-
-              </div>
-            )
-          }
+                    <button
+                      onClick={() =>
+                        openEpisode(
+                          episode
+                        )
+                      }
+                    >
+                      Ouvrir
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )}
 
           <button
             onClick={() =>
@@ -952,7 +905,6 @@ function Projects() {
 
           {showEpisodeForm && (
             <div className="form-container">
-
               <h2>
                 Nouvel épisode
               </h2>
@@ -1001,12 +953,9 @@ function Projects() {
               >
                 Créer
               </button>
-
             </div>
           )}
-
         </main>
-
       </div>
     );
   }
@@ -1023,11 +972,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={() =>
               goToSection(
@@ -1058,263 +1005,567 @@ function Projects() {
             🎬 Scènes
           </h2>
 
-          {
-            selectedEpisode
-              .scenes.length ===
-            0 ? (
-              <p>
-                Aucune scène.
-              </p>
-            ) : (
-              <div className="project-grid">
+          {(
+            selectedEpisode.scenes ||
+            []
+          ).length === 0 ? (
+            <p>
+              Aucune scène.
+            </p>
+          ) : (
+            <div className="project-grid">
+              {selectedEpisode.scenes.map(
+                (
+                  scene,
+                  index
+                ) => {
+                  const characters =
+                    (
+                      selectedProject.characters ||
+                      []
+                    ).filter(
+                      (character) =>
+                        (
+                          scene.characterIds ||
+                          []
+                        ).some(
+                          (id) =>
+                            String(
+                              id
+                            ) ===
+                            String(
+                              character.id
+                            )
+                        )
+                    );
 
-                {
-                  selectedEpisode
-                    .scenes.map(
-                      (
-                        scene,
-                        index
-                      ) => {
+                  const locations =
+                    (
+                      selectedProject.locations ||
+                      []
+                    ).filter(
+                      (location) =>
+                        (
+                          scene.locationIds ||
+                          []
+                        ).some(
+                          (id) =>
+                            String(
+                              id
+                            ) ===
+                            String(
+                              location.id
+                            )
+                        )
+                    );
 
-                        const characters =
-                          selectedProject.characters.filter(
-                            (
-                              character
-                            ) =>
-                              scene
-                                .characterIds
-                                ?.some(
-                                  (
-                                    id
-                                  ) =>
-                                    String(
-                                      id
-                                    ) ===
-                                    String(
-                                      character.id
-                                    )
-                                )
-                          );
-
-                        const locations =
-                          selectedProject.locations.filter(
-                            (
-                              location
-                            ) =>
-                              scene
-                                .locationIds
-                                ?.some(
-                                  (
-                                    id
-                                  ) =>
-                                    String(
-                                      id
-                                    ) ===
-                                    String(
-                                      location.id
-                                    )
-                                )
-                          );
-
-                        const movements =
-                          scene.movementSteps ||
+                  const movements =
+                    scene.movementSteps ||
+                    (
+                      scene.movementIds ||
+                      []
+                    ).map(
+                      (movementId) => {
+                        const movement =
                           (
-                            scene.movementIds ||
+                            selectedProject.movements ||
                             []
-                          ).map(
-                            (
-                              movementId
-                            ) => {
-                              const movement =
-                                selectedProject.movements.find(
-                                  (
-                                    item
-                                  ) =>
-                                    String(
-                                      item.id
-                                    ) ===
-                                    String(
-                                      movementId
-                                    )
-                                );
-
-                              return {
-                                id:
-                                  movementId,
-                                destination:
-                                  movement?.destination ||
-                                  "",
-                              };
-                            }
+                          ).find(
+                            (item) =>
+                              String(
+                                item.id
+                              ) ===
+                              String(
+                                movementId
+                              )
                           );
 
-                        return (
-                          <div
-                            className="project-card"
-                            key={
-                              scene.id
-                            }
-                          >
-
-                            <h3>
-                              🎬 Scène{" "}
-                              {
-                                index +
-                                1
-                              }
-                            </h3>
-
-                            <h4>
-                              {
-                                scene.title
-                              }
-                            </h4>
-
-                            <p>
-                              {
-                                scene.description ||
-                                "Aucune description."
-                              }
-                            </p>
-
-                            <p>
-                              🎭{" "}
-                              {
-                                characters.length
-                              }{" "}
-                              personnage(s)
-                            </p>
-
-                            <p>
-                              🌍{" "}
-                              {
-                                locations.length
-                              }{" "}
-                              lieu(x)
-                            </p>
-
-                            {locations.map(
-                              (
-                                location
-                              ) => (
-                                <div
-                                  key={
-                                    location.id
-                                  }
-                                >
-                                  🌍{" "}
-                                  {
-                                    location.name
-                                  }
-                                </div>
-                              )
-                            )}
-
-                            <hr />
-
-                            <h4>
-                              🎞️ Mouvements
-                            </h4>
-
-                            {movements.length ===
-                            0 ? (
-                              <p>
-                                Aucun mouvement.
-                              </p>
-                            ) : (
-                              movements.map(
-                                (
-                                  step,
-                                  movementIndex
-                                ) => {
-
-                                  const movement =
-                                    selectedProject.movements.find(
-                                      (
-                                        item
-                                      ) =>
-                                        String(
-                                          item.id
-                                        ) ===
-                                        String(
-                                          step.id
-                                        )
-                                    );
-
-                                  return (
-                                    <div
-                                      key={`${scene.id}-${movementIndex}`}
-                                      style={{
-                                        marginBottom:
-                                          "12px",
-                                      }}
-                                    >
-
-                                      <strong>
-                                        {
-                                          movementIndex +
-                                          1
-                                        }.
-                                        {" "}
-                                        🎞️{" "}
-                                        {
-                                          movement?.name ||
-                                          "Mouvement"
-                                        }
-                                      </strong>
-
-                                      <div>
-                                        🎯{" "}
-                                        {
-                                          step.destination ||
-                                          movement?.destination ||
-                                          "Aucune destination"
-                                        }
-                                      </div>
-
-                                    </div>
-                                  );
-                                }
-                              )
-                            )}
-
-                            <p>
-                              ⏱️{" "}
-                              {
-                                scene.duration
-                              }{" "}
-                              secondes
-                            </p>
-
-                            <button
-                              onClick={() =>
-                                openEditScene(
-                                  scene
-                                )
-                              }
-                            >
-                              ✏️ Modifier
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                deleteScene(
-                                  scene.id
-                                )
-                              }
-                            >
-                              🗑️ Supprimer
-                            </button>
-
-                          </div>
-                        );
+                        return {
+                          id:
+                            movementId,
+                          destination:
+                            movement?.destination ||
+                            "",
+                        };
                       }
-                    )
-                }
+                    );
 
-              </div>
-            )
-          }
+                  return (
+                    <div
+                      className="project-card"
+                      key={
+                        scene.id
+                      }
+                    >
+                      <h3>
+                        🎬 Scène{" "}
+                        {index + 1}
+                      </h3>
+
+                      <h4>
+                        {
+                          scene.title
+                        }
+                      </h4>
+
+                      <p>
+                        {
+                          scene.description ||
+                          "Aucune description."
+                        }
+                      </p>
+
+                      {/* PERSONNAGES */}
+
+                      <hr />
+
+                      <h4>
+                        🎭 Personnages
+                      </h4>
+
+                      {characters.length ===
+                      0 ? (
+                        <p>
+                          Aucun
+                          personnage.
+                        </p>
+                      ) : (
+                        characters.map(
+                          (
+                            character
+                          ) => (
+                            <div
+                              key={
+                                character.id
+                              }
+                              style={{
+                                marginBottom:
+                                  "15px",
+                              }}
+                            >
+                              <strong>
+                                🎭{" "}
+                                {
+                                  character.name
+                                }
+                              </strong>
+
+                              {character
+                                .description && (
+                                <p>
+                                  {
+                                    character.description
+                                  }
+                                </p>
+                              )}
+
+                              {(
+                                character.images ||
+                                []
+                              ).length >
+                                0 && (
+                                <div
+                                  style={{
+                                    display:
+                                      "grid",
+                                    gridTemplateColumns:
+                                      "repeat(auto-fit, minmax(100px, 1fr))",
+                                    gap:
+                                      "8px",
+                                    marginTop:
+                                      "8px",
+                                  }}
+                                >
+                                  {character.images.map(
+                                    (
+                                      image
+                                    ) => (
+                                      <img
+                                        key={
+                                          image.id
+                                        }
+                                        src={
+                                          image.url
+                                        }
+                                        alt={
+                                          character.name
+                                        }
+                                        style={{
+                                          width:
+                                            "100%",
+                                          height:
+                                            "110px",
+                                          objectFit:
+                                            "cover",
+                                          borderRadius:
+                                            "8px",
+                                        }}
+                                      />
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )
+                      )}
+
+                      {/* LIEUX */}
+
+                      <hr />
+
+                      <h4>
+                        🌍 Lieux
+                      </h4>
+
+                      {locations.length ===
+                      0 ? (
+                        <p>
+                          Aucun lieu.
+                        </p>
+                      ) : (
+                        locations.map(
+                          (
+                            location
+                          ) => (
+                            <div
+                              key={
+                                location.id
+                              }
+                              style={{
+                                marginBottom:
+                                  "15px",
+                              }}
+                            >
+                              <strong>
+                                🌍{" "}
+                                {
+                                  location.name
+                                }
+                              </strong>
+
+                              {location
+                                .description && (
+                                <p>
+                                  {
+                                    location.description
+                                  }
+                                </p>
+                              )}
+
+                              {(
+                                location.images ||
+                                []
+                              ).length >
+                                0 && (
+                                <div
+                                  style={{
+                                    display:
+                                      "grid",
+                                    gridTemplateColumns:
+                                      "repeat(auto-fit, minmax(100px, 1fr))",
+                                    gap:
+                                      "8px",
+                                    marginTop:
+                                      "8px",
+                                  }}
+                                >
+                                  {location.images.map(
+                                    (
+                                      image
+                                    ) => (
+                                      <img
+                                        key={
+                                          image.id
+                                        }
+                                        src={
+                                          image.url
+                                        }
+                                        alt={
+                                          location.name
+                                        }
+                                        style={{
+                                          width:
+                                            "100%",
+                                          height:
+                                            "110px",
+                                          objectFit:
+                                            "cover",
+                                          borderRadius:
+                                            "8px",
+                                        }}
+                                      />
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )
+                      )}
+
+                      {/* ACTION */}
+
+                      <hr />
+
+                      <h4>
+                        🎬 Action / mise
+                        en scène
+                      </h4>
+
+                      <p
+                        style={{
+                          whiteSpace:
+                            "pre-wrap",
+                        }}
+                      >
+                        {scene.action ||
+                          "Aucune action décrite."}
+                      </p>
+
+                      {/* DIALOGUES */}
+
+                      <h4>
+                        💬 Dialogues
+                      </h4>
+
+                      <p
+                        style={{
+                          whiteSpace:
+                            "pre-wrap",
+                        }}
+                      >
+                        {scene.dialogue ||
+                          "Aucun dialogue."}
+                      </p>
+
+                      {/* MOUVEMENTS */}
+
+                      <hr />
+
+                      <h4>
+                        🎞️ Mouvements
+                      </h4>
+
+                      {movements.length ===
+                      0 ? (
+                        <p>
+                          Aucun mouvement.
+                        </p>
+                      ) : (
+                        movements.map(
+                          (
+                            step,
+                            movementIndex
+                          ) => {
+                            const movement =
+                              (
+                                selectedProject.movements ||
+                                []
+                              ).find(
+                                (
+                                  item
+                                ) =>
+                                  String(
+                                    item.id
+                                  ) ===
+                                  String(
+                                    step.id
+                                  )
+                              );
+
+                            return (
+                              <div
+                                key={`${scene.id}-${movementIndex}`}
+                                style={{
+                                  marginBottom:
+                                    "15px",
+                                }}
+                              >
+                                <strong>
+                                  {
+                                    movementIndex +
+                                    1
+                                  }
+                                  . 🎞️{" "}
+                                  {
+                                    movement?.name ||
+                                    "Mouvement"
+                                  }
+                                </strong>
+
+                                {movement
+                                  ?.description && (
+                                  <p>
+                                    {
+                                      movement.description
+                                    }
+                                  </p>
+                                )}
+
+                                {movement
+                                  ?.previewImage
+                                  ?.url && (
+                                  <img
+                                    src={
+                                      movement
+                                        .previewImage
+                                        .url
+                                    }
+                                    alt={
+                                      movement.name
+                                    }
+                                    style={{
+                                      width:
+                                        "180px",
+                                      maxHeight:
+                                        "120px",
+                                      objectFit:
+                                        "cover",
+                                      borderRadius:
+                                        "8px",
+                                    }}
+                                  />
+                                )}
+
+                                {movement
+                                  ?.previewVideo
+                                  ?.url && (
+                                  <video
+                                    controls
+                                    src={
+                                      movement
+                                        .previewVideo
+                                        .url
+                                    }
+                                    style={{
+                                      width:
+                                        "240px",
+                                      maxHeight:
+                                        "160px",
+                                      display:
+                                        "block",
+                                        marginTop:
+                                        "8px",
+                                    }}
+                                  />
+                                )}
+
+                                <p>
+                                  🎯{" "}
+                                  <strong>
+                                    Destination :
+                                  </strong>{" "}
+                                  {
+                                    step.destination ||
+                                    movement?.destination ||
+                                    "Aucune destination"
+                                  }
+                                </p>
+                              </div>
+                            );
+                          }
+                        )
+                      )}
+
+                      {/* STYLE */}
+
+                      <hr />
+
+                      <h4>
+                        🎨 Style visuel
+                      </h4>
+
+                      <p
+                        style={{
+                          whiteSpace:
+                            "pre-wrap",
+                        }}
+                      >
+                        {scene.style
+                          ?.text ||
+                          "Aucun style défini."}
+                      </p>
+
+                      {(
+                        scene.style
+                          ?.images ||
+                        []
+                      ).length >
+                        0 && (
+                        <div
+                          style={{
+                            display:
+                              "grid",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(120px, 1fr))",
+                            gap:
+                              "8px",
+                          }}
+                        >
+                          {scene.style.images.map(
+                            (
+                              image
+                            ) => (
+                              <img
+                                key={
+                                  image.id
+                                }
+                                src={
+                                  image.url
+                                }
+                                alt={
+                                  image.name
+                                }
+                                style={{
+                                  width:
+                                    "100%",
+                                  height:
+                                    "130px",
+                                  objectFit:
+                                    "cover",
+                                  borderRadius:
+                                    "8px",
+                                }}
+                              />
+                            )
+                          )}
+                        </div>
+                      )}
+
+                      <p>
+                        ⏱️{" "}
+                        {
+                          scene.duration
+                        }{" "}
+                        secondes
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          openEditScene(
+                            scene
+                          )
+                        }
+                      >
+                        ✏️ Modifier
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          deleteScene(
+                            scene.id
+                          )
+                        }
+                      >
+                        🗑️ Supprimer
+                      </button>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          )}
 
           <button
             onClick={
@@ -1330,13 +1581,10 @@ function Projects() {
 
           {showSceneForm && (
             <div className="form-container">
-
               <h2>
-                {
-                  editingScene
-                    ? "✏️ Modifier la scène"
-                    : "🎬 Nouvelle scène"
-                }
+                {editingScene
+                  ? "✏️ Modifier la scène"
+                  : "🎬 Nouvelle scène"}
               </h2>
 
               <input
@@ -1368,69 +1616,143 @@ function Projects() {
 
               <hr />
 
-              {/* PERSONNAGES */}
+              {/* ==========================
+                  PERSONNAGES
+                  ========================== */}
 
               <h3>
                 🎭 Personnages
               </h3>
 
-              {
-                selectedProject
-                  .characters.length ===
-                0 ? (
-                  <p>
-                    Aucun personnage.
-                  </p>
-                ) : (
-                  selectedProject.characters.map(
-                    (
-                      character
-                    ) => (
-                      <label
+              <p>
+                Tu peux sélectionner
+                plusieurs personnages.
+              </p>
+
+              {(
+                selectedProject.characters ||
+                []
+              ).length === 0 ? (
+                <p>
+                  Aucun personnage dans
+                  la bibliothèque.
+                </p>
+              ) : (
+                selectedProject.characters.map(
+                  (character) => {
+                    const selected =
+                      selectedCharacterIds.some(
+                        (id) =>
+                          String(
+                            id
+                          ) ===
+                          String(
+                            character.id
+                          )
+                      );
+
+                    return (
+                      <div
                         key={
                           character.id
                         }
                         style={{
-                          display:
-                            "block",
-                          margin:
-                            "8px 0",
+                          border:
+                            selected
+                              ? "2px solid #555"
+                              : "1px solid #ccc",
+                          borderRadius:
+                            "8px",
+                          padding:
+                            "10px",
+                          marginBottom:
+                            "10px",
                         }}
                       >
-
-                        <input
-                          type="checkbox"
-                          checked={selectedCharacterIds.some(
-                            (
-                              id
-                            ) =>
-                              String(
-                                id
-                              ) ===
-                              String(
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              selected
+                            }
+                            onChange={() =>
+                              toggleCharacter(
                                 character.id
                               )
-                          )}
-                          onChange={() =>
-                            toggleCharacter(
-                              character.id
-                            )
+                            }
+                          />
+
+                          {" "}
+                          🎭{" "}
+                          {
+                            character.name
                           }
-                        />
+                        </label>
 
-                        {" "}
-                        🎭{" "}
-                        {
-                          character.name
-                        }
+                        {character
+                          .description && (
+                          <p>
+                            {
+                              character.description
+                            }
+                          </p>
+                        )}
 
-                      </label>
-                    )
-                  )
+                        {(
+                          character.images ||
+                          []
+                        ).length >
+                          0 && (
+                          <div
+                            style={{
+                              display:
+                                "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fit, minmax(90px, 1fr))",
+                              gap:
+                                "6px",
+                              marginTop:
+                                "8px",
+                            }}
+                          >
+                            {character.images.map(
+                              (
+                                image
+                              ) => (
+                                <img
+                                  key={
+                                    image.id
+                                  }
+                                  src={
+                                    image.url
+                                  }
+                                  alt={
+                                    character.name
+                                  }
+                                  style={{
+                                    width:
+                                      "100%",
+                                    height:
+                                      "90px",
+                                    objectFit:
+                                      "cover",
+                                    borderRadius:
+                                      "6px",
+                                  }}
+                                />
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
                 )
-              }
+              )}
 
-              {/* LIEUX */}
+              {/* ==========================
+                  LIEUX
+                  ========================== */}
 
               <h3>
                 🌍 Lieux
@@ -1438,67 +1760,134 @@ function Projects() {
 
               <p>
                 Plusieurs lieux peuvent
-                être utilisés dans la même
+                être présents dans la même
                 scène.
               </p>
 
-              {
-                selectedProject
-                  .locations.length ===
-                0 ? (
-                  <p>
-                    Aucun lieu.
-                  </p>
-                ) : (
-                  selectedProject.locations.map(
-                    (
-                      location
-                    ) => (
-                      <label
+              {(
+                selectedProject.locations ||
+                []
+              ).length === 0 ? (
+                <p>
+                  Aucun lieu dans la
+                  bibliothèque.
+                </p>
+              ) : (
+                selectedProject.locations.map(
+                  (location) => {
+                    const selected =
+                      selectedLocationIds.some(
+                        (id) =>
+                          String(
+                            id
+                          ) ===
+                          String(
+                            location.id
+                          )
+                      );
+
+                    return (
+                      <div
                         key={
                           location.id
                         }
                         style={{
-                          display:
-                            "block",
-                          margin:
-                            "8px 0",
+                          border:
+                            selected
+                              ? "2px solid #555"
+                              : "1px solid #ccc",
+                          borderRadius:
+                            "8px",
+                          padding:
+                            "10px",
+                          marginBottom:
+                            "10px",
                         }}
                       >
-
-                        <input
-                          type="checkbox"
-                          checked={selectedLocationIds.some(
-                            (
-                              id
-                            ) =>
-                              String(
-                                id
-                              ) ===
-                              String(
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              selected
+                            }
+                            onChange={() =>
+                              toggleLocation(
                                 location.id
                               )
-                          )}
-                          onChange={() =>
-                            toggleLocation(
-                              location.id
-                            )
+                            }
+                          />
+
+                          {" "}
+                          🌍{" "}
+                          {
+                            location.name
                           }
-                        />
+                        </label>
 
-                        {" "}
-                        🌍{" "}
-                        {
-                          location.name
-                        }
+                        {location
+                          .description && (
+                          <p>
+                            {
+                              location.description
+                            }
+                          </p>
+                        )}
 
-                      </label>
-                    )
-                  )
+                        {(
+                          location.images ||
+                          []
+                        ).length >
+                          0 && (
+                          <div
+                            style={{
+                              display:
+                                "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fit, minmax(90px, 1fr))",
+                              gap:
+                                "6px",
+                              marginTop:
+                                "8px",
+                            }}
+                          >
+                            {location.images.map(
+                              (
+                                image
+                              ) => (
+                                <img
+                                  key={
+                                    image.id
+                                  }
+                                  src={
+                                    image.url
+                                  }
+                                  alt={
+                                    location.name
+                                  }
+                                  style={{
+                                    width:
+                                      "100%",
+                                    height:
+                                      "90px",
+                                    objectFit:
+                                      "cover",
+                                    borderRadius:
+                                      "6px",
+                                  }}
+                                />
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
                 )
-              }
+              )}
 
-              {/* MOUVEMENTS */}
+              {/* ==========================
+                  MOUVEMENTS
+                  ========================== */}
 
               <hr />
 
@@ -1507,28 +1896,23 @@ function Projects() {
               </h3>
 
               <p>
-                Ajoute les mouvements
-                depuis ta bibliothèque.
-                Tu peux ensuite changer
-                leur ordre et leur
-                destination pour cette
-                scène.
+                Les mouvements viennent
+                directement de la bibliothèque.
               </p>
 
-              {selectedProject
-                .movements
-                ?.length === 0 ? (
+              {(
+                selectedProject.movements ||
+                []
+              ).length === 0 ? (
                 <p>
-                  Aucun mouvement dans
-                  la bibliothèque.
+                  Aucun mouvement dans la
+                  bibliothèque.
                   <br />
-                  Va dans 📚 Bibliothèques
-                  → 🎞️ Mouvements pour
-                  en créer.
+                  Va dans 📚 Bibliothèques →
+                  🎞️ Mouvements.
                 </p>
               ) : (
-                <div>
-
+                <>
                   <h4>
                     Ajouter un mouvement
                   </h4>
@@ -1541,15 +1925,10 @@ function Projects() {
                     }}
                   >
                     {selectedProject.movements.map(
-                      (
-                        movement
-                      ) => {
-
+                      (movement) => {
                         const alreadyAdded =
                           sceneMovements.some(
-                            (
-                              item
-                            ) =>
+                            (item) =>
                               String(
                                 item.id
                               ) ===
@@ -1589,7 +1968,8 @@ function Projects() {
                             {movement.destination && (
                               <>
                                 {" "}
-                                →{" "}
+                                →
+                                {" "}
                                 {
                                   movement.destination
                                 }
@@ -1619,12 +1999,12 @@ function Projects() {
                         step,
                         index
                       ) => {
-
                         const movement =
-                          selectedProject.movements.find(
-                            (
-                              item
-                            ) =>
+                          (
+                            selectedProject.movements ||
+                            []
+                          ).find(
+                            (item) =>
                               String(
                                 item.id
                               ) ===
@@ -1647,12 +2027,10 @@ function Projects() {
                                 "10px",
                             }}
                           >
-
                             <h4>
                               {index +
                                 1}
-                              .{" "}
-                              🎞️{" "}
+                              . 🎞️{" "}
                               {
                                 movement?.name ||
                                 "Mouvement"
@@ -1667,8 +2045,6 @@ function Projects() {
                                 }
                               </p>
                             )}
-
-                            {/* APERÇU IMAGE */}
 
                             {movement
                               ?.previewImage
@@ -1695,8 +2071,6 @@ function Projects() {
                               />
                             )}
 
-                            {/* APERÇU VIDÉO */}
-
                             {movement
                               ?.previewVideo
                               ?.url && (
@@ -1720,20 +2094,13 @@ function Projects() {
                               />
                             )}
 
-                            <label
-                              style={{
-                                display:
-                                  "block",
-                                marginTop:
-                                  "10px",
-                              }}
-                            >
+                            <label>
                               🎯 Destination
                             </label>
 
                             <input
                               className="project-input"
-                              placeholder="Exemple : Porte principale"
+                              placeholder="Exemple : porte principale"
                               value={
                                 step.destination ||
                                 ""
@@ -1753,7 +2120,6 @@ function Projects() {
                             <div
                               className="form-actions"
                             >
-
                               <button
                                 disabled={
                                   index ===
@@ -1792,19 +2158,18 @@ function Projects() {
                               >
                                 🗑️ Retirer
                               </button>
-
                             </div>
-
                           </div>
                         );
                       }
                     )
                   )}
-
-                </div>
+                </>
               )}
 
-              {/* ACTION */}
+              {/* ==========================
+                  ACTION
+                  ========================== */}
 
               <hr />
 
@@ -1816,8 +2181,8 @@ function Projects() {
                 Décris ici toute la scène :
                 déroulement, actions,
                 déplacements, interactions,
-                changements de lieux et
-                mise en scène.
+                changements de lieux,
+                caméra et mise en scène.
               </p>
 
               <textarea
@@ -1834,7 +2199,9 @@ function Projects() {
                 rows="12"
               />
 
-              {/* DIALOGUES */}
+              {/* ==========================
+                  DIALOGUES
+                  ========================== */}
 
               <h3>
                 💬 Dialogues
@@ -1854,7 +2221,9 @@ function Projects() {
                 rows="6"
               />
 
-              {/* STYLE */}
+              {/* ==========================
+                  STYLE
+                  ========================== */}
 
               <h3>
                 🎨 Style visuel
@@ -1887,7 +2256,50 @@ function Projects() {
                 }
               />
 
-              {/* DURÉE */}
+              {sceneStyleImages.length >
+                0 && (
+                <div
+                  style={{
+                    display:
+                      "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(120px, 1fr))",
+                    gap: "8px",
+                    marginTop:
+                      "10px",
+                  }}
+                >
+                  {sceneStyleImages.map(
+                    (image) => (
+                      <img
+                        key={
+                          image.id
+                        }
+                        src={
+                          image.url
+                        }
+                        alt={
+                          image.name
+                        }
+                        style={{
+                          width:
+                            "100%",
+                          height:
+                            "120px",
+                          objectFit:
+                            "cover",
+                          borderRadius:
+                            "8px",
+                        }}
+                      />
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* ==========================
+                  DURÉE
+                  ========================== */}
 
               <h3>
                 ⏱️ Durée
@@ -1910,7 +2322,6 @@ function Projects() {
               <div
                 className="form-actions"
               >
-
                 <button
                   onClick={
                     resetSceneForm
@@ -1924,20 +2335,14 @@ function Projects() {
                     saveScene
                   }
                 >
-                  {
-                    editingScene
-                      ? "Enregistrer"
-                      : "Créer la scène"
-                  }
+                  {editingScene
+                    ? "Enregistrer"
+                    : "Créer la scène"}
                 </button>
-
               </div>
-
             </div>
           )}
-
         </main>
-
       </div>
     );
   }
@@ -1952,11 +2357,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={() =>
               goToSection(
@@ -1975,9 +2378,7 @@ function Projects() {
             Cette section sera
             développée ensuite.
           </p>
-
         </main>
-
       </div>
     );
   }
@@ -1992,11 +2393,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={() =>
               goToSection(
@@ -2015,9 +2414,7 @@ function Projects() {
             Les vidéos du projet
             seront accessibles ici.
           </p>
-
         </main>
-
       </div>
     );
   }
@@ -2032,11 +2429,9 @@ function Projects() {
   ) {
     return (
       <div className="app">
-
         <SidebarMenu />
 
         <main className="main">
-
           <button
             onClick={
               returnToProjects
@@ -2055,7 +2450,6 @@ function Projects() {
           </h2>
 
           <div className="project-grid">
-
             <div className="project-card">
               <h3>
                 🎭 Personnages
@@ -2063,8 +2457,10 @@ function Projects() {
 
               <p>
                 {
-                  selectedProject
-                    .characters.length
+                  (
+                    selectedProject.characters ||
+                    []
+                  ).length
                 }
               </p>
 
@@ -2086,8 +2482,10 @@ function Projects() {
 
               <p>
                 {
-                  selectedProject
-                    .locations.length
+                  (
+                    selectedProject.locations ||
+                    []
+                  ).length
                 }
               </p>
 
@@ -2109,8 +2507,10 @@ function Projects() {
 
               <p>
                 {
-                  selectedProject
-                    .movements.length
+                  (
+                    selectedProject.movements ||
+                    []
+                  ).length
                 }
               </p>
 
@@ -2132,8 +2532,10 @@ function Projects() {
 
               <p>
                 {
-                  selectedProject
-                    .images.length
+                  (
+                    selectedProject.images ||
+                    []
+                  ).length
                 }
               </p>
 
@@ -2147,7 +2549,6 @@ function Projects() {
                 Ouvrir
               </button>
             </div>
-
           </div>
 
           <hr />
@@ -2156,72 +2557,62 @@ function Projects() {
             🎬 Épisodes
           </h2>
 
-          {
-            selectedProject
-              .episodes.length ===
-            0 ? (
-              <p>
-                Aucun épisode.
-              </p>
-            ) : (
-              <div className="project-grid">
+          {(
+            selectedProject.episodes ||
+            []
+          ).length === 0 ? (
+            <p>
+              Aucun épisode.
+            </p>
+          ) : (
+            <div className="project-grid">
+              {selectedProject.episodes.map(
+                (
+                  episode,
+                  index
+                ) => (
+                  <div
+                    className="project-card"
+                    key={
+                      episode.id
+                    }
+                  >
+                    <h3>
+                      🎬 Épisode{" "}
+                      {index + 1}
+                    </h3>
 
-                {
-                  selectedProject
-                    .episodes.map(
-                      (
-                        episode,
-                        index
-                      ) => (
-                        <div
-                          className="project-card"
-                          key={
-                            episode.id
-                          }
-                        >
+                    <p>
+                      {
+                        episode.title
+                      }
+                    </p>
 
-                          <h3>
-                            🎬 Épisode{" "}
-                            {
-                              index +
-                              1
-                            }
-                          </h3>
+                    <p>
+                      🎬{" "}
+                      {
+                        (
+                          episode.scenes ||
+                          []
+                        ).length
+                      }{" "}
+                      scène(s)
+                    </p>
 
-                          <p>
-                            {
-                              episode.title
-                            }
-                          </p>
-
-                          <p>
-                            🎬{" "}
-                            {
-                              episode
-                                .scenes
-                                .length
-                            }{" "}
-                            scène(s)
-                          </p>
-
-                          <button
-                            onClick={() =>
-                              openEpisode(
-                                episode
-                              )
-                            }
-                          >
-                            Ouvrir
-                          </button>
-
-                        </div>
-                      )
-                    )
-                }
-
-              </div>
-            )
-          }
+                    <button
+                      onClick={() =>
+                        openEpisode(
+                          episode
+                        )
+                      }
+                    >
+                      Ouvrir
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )}
 
           <button
             onClick={() =>
@@ -2235,7 +2626,6 @@ function Projects() {
 
           {showEpisodeForm && (
             <div className="form-container">
-
               <h2>
                 Nouvel épisode
               </h2>
@@ -2284,12 +2674,9 @@ function Projects() {
               >
                 Créer
               </button>
-
             </div>
           )}
-
         </main>
-
       </div>
     );
   }
@@ -2300,9 +2687,7 @@ function Projects() {
 
   return (
     <div className="app">
-
       <aside className="sidebar">
-
         <h2>
           🎬 Cinema AI
         </h2>
@@ -2311,8 +2696,7 @@ function Projects() {
           📁 Mes projets
         </h3>
 
-        {projects.length ===
-        0 ? (
+        {projects.length === 0 ? (
           <p>
             Aucun projet
           </p>
@@ -2340,9 +2724,7 @@ function Projects() {
                 }}
               >
                 🎬{" "}
-                {
-                  project.name
-                }
+                {project.name}
               </button>
             )
           )
@@ -2357,11 +2739,9 @@ function Projects() {
         >
           + Nouveau projet
         </button>
-
       </aside>
 
       <main className="main">
-
         <h1>
           🎬 Cinema AI
         </h1>
@@ -2370,97 +2750,89 @@ function Projects() {
           Mes projets
         </h2>
 
-        {
-          projects.length ===
-          0 ? (
-            <p>
-              Aucun projet
-              pour le moment.
-            </p>
-          ) : (
-            <div className="project-grid">
+        {projects.length === 0 ? (
+          <p>
+            Aucun projet pour
+            le moment.
+          </p>
+        ) : (
+          <div className="project-grid">
+            {projects.map(
+              (project) => (
+                <div
+                  className="project-card"
+                  key={
+                    project.id
+                  }
+                >
+                  <h3>
+                    🎬{" "}
+                    {
+                      project.name
+                    }
+                  </h3>
 
-              {
-                projects.map(
-                  (
-                    project
-                  ) => (
-                    <div
-                      className="project-card"
-                      key={
-                        project.id
-                      }
-                    >
+                  <p>
+                    🎭{" "}
+                    {
+                      (
+                        project.characters ||
+                        []
+                      ).length
+                    }{" "}
+                    personnage(s)
+                  </p>
 
-                      <h3>
-                        🎬{" "}
-                        {
-                          project.name
-                        }
-                      </h3>
+                  <p>
+                    🌍{" "}
+                    {
+                      (
+                        project.locations ||
+                        []
+                      ).length
+                    }{" "}
+                    lieu(x)
+                  </p>
 
-                      <p>
-                        🎭{" "}
-                        {
-                          project
-                            .characters
-                            .length
-                        }{" "}
-                        personnage(s)
-                      </p>
+                  <p>
+                    🎞️{" "}
+                    {
+                      (
+                        project.movements ||
+                        []
+                      ).length
+                    }{" "}
+                    mouvement(s)
+                  </p>
 
-                      <p>
-                        🌍{" "}
-                        {
-                          project
-                            .locations
-                            .length
-                        }{" "}
-                        lieu(x)
-                      </p>
+                  <p>
+                    🎬{" "}
+                    {
+                      (
+                        project.episodes ||
+                        []
+                      ).length
+                    }{" "}
+                    épisode(s)
+                  </p>
 
-                      <p>
-                        🎞️{" "}
-                        {
-                          project
-                            .movements
-                            .length
-                        }{" "}
-                        mouvement(s)
-                      </p>
-
-                      <p>
-                        🎬{" "}
-                        {
-                          project
-                            .episodes
-                            .length
-                        }{" "}
-                        épisode(s)
-                      </p>
-
-                      <button
-                        onClick={() =>
-                          openProject(
-                            project
-                          )
-                        }
-                      >
-                        Ouvrir
-                      </button>
-
-                    </div>
-                  )
-                )
-              }
-
-            </div>
-          )
-        }
+                  <button
+                    onClick={() =>
+                      openProject(
+                        project
+                      )
+                    }
+                  >
+                    Ouvrir
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        )}
 
         {showProjectForm && (
           <div className="form-container">
-
             <h2>
               Nouveau projet
             </h2>
@@ -2495,12 +2867,9 @@ function Projects() {
             >
               Créer
             </button>
-
           </div>
         )}
-
       </main>
-
     </div>
   );
 }
