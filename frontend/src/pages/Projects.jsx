@@ -19,13 +19,18 @@ function Projects() {
 
   const [sceneTitle, setSceneTitle] = useState("");
   const [sceneDescription, setSceneDescription] = useState("");
+  const [sceneDuration, setSceneDuration] = useState("2");
+
   const [sceneCharacters, setSceneCharacters] = useState("");
   const [sceneLocation, setSceneLocation] = useState("");
   const [sceneDialogue, setSceneDialogue] = useState("");
   const [sceneAction, setSceneAction] = useState("");
-  const [sceneCamera, setSceneCamera] = useState("");
-  const [sceneStyle, setSceneStyle] = useState("");
-  const [sceneDuration, setSceneDuration] = useState("2");
+
+  const [characterImages, setCharacterImages] = useState([]);
+  const [locationImages, setLocationImages] = useState([]);
+  const [movementVideo, setMovementVideo] = useState(null);
+  const [cameraImage, setCameraImage] = useState(null);
+  const [styleImages, setStyleImages] = useState([]);
 
   function createProject() {
     const name = projectName.trim();
@@ -75,22 +80,52 @@ function Projects() {
     setShowEpisodeForm(false);
   }
 
+  function handleImages(event, setter) {
+    const files = Array.from(event.target.files || []);
+
+    const images = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+
+    setter(images);
+  }
+
+  function handleVideo(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setMovementVideo({
+      name: file.name,
+      url: URL.createObjectURL(file),
+    });
+  }
+
   function createScene() {
     const title = sceneTitle.trim();
 
-    if (!title || !selectedProject || !selectedEpisode) return;
+    if (!title || !selectedProject || !selectedEpisode) {
+      return;
+    }
 
     const newScene = {
       id: Date.now(),
       title,
       description: sceneDescription.trim(),
+      duration: sceneDuration,
+
       characters: sceneCharacters.trim(),
       location: sceneLocation.trim(),
       dialogue: sceneDialogue.trim(),
       action: sceneAction.trim(),
-      camera: sceneCamera.trim(),
-      style: sceneStyle.trim(),
-      duration: sceneDuration,
+
+      characterImages,
+      locationImages,
+      movementVideo,
+      cameraImage,
+      styleImages,
     };
 
     const updatedEpisode = {
@@ -118,13 +153,18 @@ function Projects() {
 
     setSceneTitle("");
     setSceneDescription("");
+    setSceneDuration("2");
+
     setSceneCharacters("");
     setSceneLocation("");
     setSceneDialogue("");
     setSceneAction("");
-    setSceneCamera("");
-    setSceneStyle("");
-    setSceneDuration("2");
+
+    setCharacterImages([]);
+    setLocationImages([]);
+    setMovementVideo(null);
+    setCameraImage(null);
+    setStyleImages([]);
 
     setShowSceneForm(false);
   }
@@ -183,44 +223,39 @@ function Projects() {
                   </h3>
 
                   <p>
-                    <strong>📝 Description :</strong>{" "}
-                    {scene.description || "Aucune"}
+                    {scene.description || "Aucune description."}
                   </p>
 
                   <p>
-                    <strong>🎭 Personnages :</strong>{" "}
-                    {scene.characters || "Aucun"}
+                    🎭 {scene.characterImages.length} image(s)
+                    personnage
                   </p>
 
                   <p>
-                    <strong>🌍 Lieu :</strong>{" "}
-                    {scene.location || "Aucun"}
+                    🌍 {scene.locationImages.length} image(s)
+                    lieu
                   </p>
 
                   <p>
-                    <strong>💬 Dialogues :</strong>{" "}
-                    {scene.dialogue || "Aucun"}
+                    🎞️{" "}
+                    {scene.movementVideo
+                      ? "Vidéo de mouvement"
+                      : "Pas de vidéo de mouvement"}
                   </p>
 
                   <p>
-                    <strong>🎥 Action :</strong>{" "}
-                    {scene.action || "Aucune"}
+                    📷{" "}
+                    {scene.cameraImage
+                      ? "Référence caméra"
+                      : "Pas de référence caméra"}
                   </p>
 
                   <p>
-                    <strong>📷 Caméra :</strong>{" "}
-                    {scene.camera || "Non définie"}
+                    🎨 {scene.styleImages.length} image(s) de
+                    style
                   </p>
 
-                  <p>
-                    <strong>🎨 Style :</strong>{" "}
-                    {scene.style || "Non défini"}
-                  </p>
-
-                  <p>
-                    <strong>⏱️ Durée :</strong>{" "}
-                    {scene.duration} minutes
-                  </p>
+                  <p>⏱️ {scene.duration} minutes</p>
                 </div>
               ))}
             </div>
@@ -246,7 +281,7 @@ function Projects() {
 
               <textarea
                 className="project-input"
-                placeholder="Description de la scène"
+                placeholder="Description"
                 value={sceneDescription}
                 onChange={(event) =>
                   setSceneDescription(event.target.value)
@@ -254,10 +289,12 @@ function Projects() {
                 rows="4"
               />
 
+              <h3>🎭 Personnages</h3>
+
               <input
                 className="project-input"
                 type="text"
-                placeholder="Personnages présents"
+                placeholder="Noms des personnages"
                 value={sceneCharacters}
                 onChange={(event) =>
                   setSceneCharacters(event.target.value)
@@ -265,18 +302,136 @@ function Projects() {
               />
 
               <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) =>
+                  handleImages(event, setCharacterImages)
+                }
+              />
+
+              {characterImages.length > 0 && (
+                <div>
+                  {characterImages.map((image) => (
+                    <img
+                      key={image.id}
+                      src={image.url}
+                      alt={image.name}
+                      width="120"
+                    />
+                  ))}
+                </div>
+              )}
+
+              <h3>🌍 Lieu</h3>
+
+              <input
                 className="project-input"
                 type="text"
-                placeholder="Lieu"
+                placeholder="Nom du lieu"
                 value={sceneLocation}
                 onChange={(event) =>
                   setSceneLocation(event.target.value)
                 }
               />
 
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) =>
+                  handleImages(event, setLocationImages)
+                }
+              />
+
+              {locationImages.length > 0 && (
+                <div>
+                  {locationImages.map((image) => (
+                    <img
+                      key={image.id}
+                      src={image.url}
+                      alt={image.name}
+                      width="120"
+                    />
+                  ))}
+                </div>
+              )}
+
+              <h3>🎞️ Mouvement</h3>
+
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideo}
+              />
+
+              {movementVideo && (
+                <video
+                  src={movementVideo.url}
+                  controls
+                  width="300"
+                />
+              )}
+
+              <h3>📷 Caméra</h3>
+
+              <p>
+                Image de référence pour le cadrage ou
+                l'angle de caméra.
+              </p>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (!file) return;
+
+                  setCameraImage({
+                    name: file.name,
+                    url: URL.createObjectURL(file),
+                  });
+                }}
+              />
+
+              {cameraImage && (
+                <img
+                  src={cameraImage.url}
+                  alt={cameraImage.name}
+                  width="200"
+                />
+              )}
+
+              <h3>🎨 Style visuel</h3>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) =>
+                  handleImages(event, setStyleImages)
+                }
+              />
+
+              {styleImages.length > 0 && (
+                <div>
+                  {styleImages.map((image) => (
+                    <img
+                      key={image.id}
+                      src={image.url}
+                      alt={image.name}
+                      width="120"
+                    />
+                  ))}
+                </div>
+              )}
+
+              <h3>💬 Dialogues</h3>
+
               <textarea
                 className="project-input"
-                placeholder="Dialogues"
+                placeholder="Dialogues de la scène"
                 value={sceneDialogue}
                 onChange={(event) =>
                   setSceneDialogue(event.target.value)
@@ -284,9 +439,11 @@ function Projects() {
                 rows="4"
               />
 
+              <h3>🎥 Action / mise en scène</h3>
+
               <textarea
                 className="project-input"
-                placeholder="Action / mise en scène"
+                placeholder="Décrire les mouvements et actions"
                 value={sceneAction}
                 onChange={(event) =>
                   setSceneAction(event.target.value)
@@ -294,32 +451,13 @@ function Projects() {
                 rows="4"
               />
 
-              <input
-                className="project-input"
-                type="text"
-                placeholder="Caméra (ex: plan large, gros plan...)"
-                value={sceneCamera}
-                onChange={(event) =>
-                  setSceneCamera(event.target.value)
-                }
-              />
-
-              <input
-                className="project-input"
-                type="text"
-                placeholder="Style visuel"
-                value={sceneStyle}
-                onChange={(event) =>
-                  setSceneStyle(event.target.value)
-                }
-              />
+              <h3>⏱️ Durée</h3>
 
               <input
                 className="project-input"
                 type="number"
                 min="1"
                 max="30"
-                placeholder="Durée en minutes"
                 value={sceneDuration}
                 onChange={(event) =>
                   setSceneDuration(event.target.value)
@@ -370,44 +508,47 @@ function Projects() {
         <main className="main">
           <h1>{selectedProject.name}</h1>
 
-          <p>Bienvenue dans votre projet cinématique.</p>
-
           <h2>🎬 Épisodes</h2>
 
           {selectedProject.episodes.length === 0 ? (
             <p>Aucun épisode pour le moment.</p>
           ) : (
             <div className="project-grid">
-              {selectedProject.episodes.map((episode, index) => (
-                <div
-                  className="project-card"
-                  key={episode.id}
-                >
-                  <h3>
-                    Épisode {index + 1} — {episode.title}
-                  </h3>
-
-                  <p>
-                    {episode.description ||
-                      "Aucune description."}
-                  </p>
-
-                  <p>
-                    ⏱️ {episode.duration} minutes
-                  </p>
-
-                  <p>
-                    🎬 {episode.scenes.length} scène(s)
-                  </p>
-
-                  <button
-                    className="open-button"
-                    onClick={() => openEpisode(episode)}
+              {selectedProject.episodes.map(
+                (episode, index) => (
+                  <div
+                    className="project-card"
+                    key={episode.id}
                   >
-                    Ouvrir
-                  </button>
-                </div>
-              ))}
+                    <h3>
+                      Épisode {index + 1} —{" "}
+                      {episode.title}
+                    </h3>
+
+                    <p>
+                      {episode.description ||
+                        "Aucune description."}
+                    </p>
+
+                    <p>
+                      ⏱️ {episode.duration} minutes
+                    </p>
+
+                    <p>
+                      🎬 {episode.scenes.length} scène(s)
+                    </p>
+
+                    <button
+                      className="open-button"
+                      onClick={() =>
+                        openEpisode(episode)
+                      }
+                    >
+                      Ouvrir
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           )}
 
@@ -467,20 +608,6 @@ function Projects() {
               </div>
             </div>
           )}
-
-          <hr />
-
-          <h2>📖 Histoire</h2>
-          <p>Construire l'histoire du projet.</p>
-
-          <h2>🎭 Personnages</h2>
-          <p>Créer et gérer les personnages.</p>
-
-          <h2>🌍 Lieux</h2>
-          <p>Créer les lieux et environnements.</p>
-
-          <h2>🎞️ Vidéos</h2>
-          <p>Les vidéos générées apparaîtront ici.</p>
         </main>
       </div>
     );
