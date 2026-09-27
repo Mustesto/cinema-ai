@@ -8,6 +8,11 @@ function Projects() {
 
   const [selectedProject, setSelectedProject] = useState(null);
 
+  const [showCharacterForm, setShowCharacterForm] = useState(false);
+  const [characterName, setCharacterName] = useState("");
+  const [characterDescription, setCharacterDescription] = useState("");
+  const [characterImages, setCharacterImages] = useState([]);
+
   const [showEpisodeForm, setShowEpisodeForm] = useState(false);
   const [episodeTitle, setEpisodeTitle] = useState("");
   const [episodeDescription, setEpisodeDescription] = useState("");
@@ -16,21 +21,15 @@ function Projects() {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
   const [showSceneForm, setShowSceneForm] = useState(false);
-
   const [sceneTitle, setSceneTitle] = useState("");
   const [sceneDescription, setSceneDescription] = useState("");
   const [sceneDuration, setSceneDuration] = useState("2");
-
-  const [sceneCharacters, setSceneCharacters] = useState("");
-  const [sceneLocation, setSceneLocation] = useState("");
-  const [sceneDialogue, setSceneDialogue] = useState("");
   const [sceneAction, setSceneAction] = useState("");
+  const [sceneDialogue, setSceneDialogue] = useState("");
+  const [sceneStyle, setSceneStyle] = useState("");
+  const [sceneStyleImages, setSceneStyleImages] = useState([]);
 
-  const [characterImages, setCharacterImages] = useState([]);
-  const [locationImages, setLocationImages] = useState([]);
-  const [movementVideo, setMovementVideo] = useState(null);
-  const [cameraImage, setCameraImage] = useState(null);
-  const [styleImages, setStyleImages] = useState([]);
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState([]);
 
   function createProject() {
     const name = projectName.trim();
@@ -40,12 +39,64 @@ function Projects() {
     const newProject = {
       id: Date.now(),
       name,
+      characters: [],
       episodes: [],
     };
 
     setProjects([...projects, newProject]);
     setProjectName("");
     setShowForm(false);
+  }
+
+  function handleCharacterImages(event) {
+    const files = Array.from(event.target.files || []);
+
+    const images = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+
+    setCharacterImages((previous) => [
+      ...previous,
+      ...images,
+    ]);
+  }
+
+  function createCharacter() {
+    const name = characterName.trim();
+
+    if (!name || !selectedProject) return;
+
+    const newCharacter = {
+      id: Date.now(),
+      name,
+      description: characterDescription.trim(),
+      images: characterImages,
+    };
+
+    const updatedProject = {
+      ...selectedProject,
+      characters: [
+        ...selectedProject.characters,
+        newCharacter,
+      ],
+    };
+
+    setProjects(
+      projects.map((project) =>
+        project.id === updatedProject.id
+          ? updatedProject
+          : project
+      )
+    );
+
+    setSelectedProject(updatedProject);
+
+    setCharacterName("");
+    setCharacterDescription("");
+    setCharacterImages([]);
+    setShowCharacterForm(false);
   }
 
   function createEpisode() {
@@ -63,12 +114,17 @@ function Projects() {
 
     const updatedProject = {
       ...selectedProject,
-      episodes: [...selectedProject.episodes, newEpisode],
+      episodes: [
+        ...selectedProject.episodes,
+        newEpisode,
+      ],
     };
 
     setProjects(
       projects.map((project) =>
-        project.id === updatedProject.id ? updatedProject : project
+        project.id === updatedProject.id
+          ? updatedProject
+          : project
       )
     );
 
@@ -80,7 +136,19 @@ function Projects() {
     setShowEpisodeForm(false);
   }
 
-  function handleImages(event, setter) {
+  function toggleCharacter(characterId) {
+    setSelectedCharacterIds((previous) => {
+      if (previous.includes(characterId)) {
+        return previous.filter(
+          (id) => id !== characterId
+        );
+      }
+
+      return [...previous, characterId];
+    });
+  }
+
+  function handleStyleImages(event) {
     const files = Array.from(event.target.files || []);
 
     const images = files.map((file) => ({
@@ -89,62 +157,63 @@ function Projects() {
       url: URL.createObjectURL(file),
     }));
 
-    setter(images);
-  }
-
-  function handleVideo(event) {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    setMovementVideo({
-      name: file.name,
-      url: URL.createObjectURL(file),
-    });
+    setSceneStyleImages((previous) => [
+      ...previous,
+      ...images,
+    ]);
   }
 
   function createScene() {
     const title = sceneTitle.trim();
 
-    if (!title || !selectedProject || !selectedEpisode) {
+    if (
+      !title ||
+      !selectedProject ||
+      !selectedEpisode
+    ) {
       return;
     }
+
+    const selectedCharacters =
+      selectedProject.characters.filter((character) =>
+        selectedCharacterIds.includes(character.id)
+      );
 
     const newScene = {
       id: Date.now(),
       title,
       description: sceneDescription.trim(),
       duration: sceneDuration,
-
-      characters: sceneCharacters.trim(),
-      location: sceneLocation.trim(),
-      dialogue: sceneDialogue.trim(),
       action: sceneAction.trim(),
-
-      characterImages,
-      locationImages,
-      movementVideo,
-      cameraImage,
-      styleImages,
+      dialogue: sceneDialogue.trim(),
+      style: sceneStyle.trim(),
+      styleImages: sceneStyleImages,
+      characters: selectedCharacters,
     };
 
     const updatedEpisode = {
       ...selectedEpisode,
-      scenes: [...selectedEpisode.scenes, newScene],
+      scenes: [
+        ...selectedEpisode.scenes,
+        newScene,
+      ],
     };
 
     const updatedProject = {
       ...selectedProject,
-      episodes: selectedProject.episodes.map((episode) =>
-        episode.id === updatedEpisode.id
-          ? updatedEpisode
-          : episode
+      episodes: selectedProject.episodes.map(
+        (episode) =>
+          episode.id === updatedEpisode.id
+            ? updatedEpisode
+            : episode
       ),
     };
 
     setProjects(
       projects.map((project) =>
-        project.id === updatedProject.id ? updatedProject : project
+        project.id === updatedProject.id
+          ? updatedProject
+          : project
       )
     );
 
@@ -154,17 +223,11 @@ function Projects() {
     setSceneTitle("");
     setSceneDescription("");
     setSceneDuration("2");
-
-    setSceneCharacters("");
-    setSceneLocation("");
-    setSceneDialogue("");
     setSceneAction("");
-
-    setCharacterImages([]);
-    setLocationImages([]);
-    setMovementVideo(null);
-    setCameraImage(null);
-    setStyleImages([]);
+    setSceneDialogue("");
+    setSceneStyle("");
+    setSceneStyleImages([]);
+    setSelectedCharacterIds([]);
 
     setShowSceneForm(false);
   }
@@ -187,7 +250,9 @@ function Projects() {
         <aside className="sidebar">
           <h2>🎬 Cinema AI</h2>
 
-          <button onClick={() => setSelectedEpisode(null)}>
+          <button
+            onClick={() => setSelectedEpisode(null)}
+          >
             ← Épisodes
           </button>
 
@@ -195,8 +260,10 @@ function Projects() {
             <p>📖 Histoire</p>
             <p>🎭 Personnages</p>
             <p>🌍 Lieux</p>
+            <p>🖼️ Images</p>
+            <p>🎞️ Mouvements</p>
             <p>🎬 Épisodes</p>
-            <p>🎞️ Vidéos</p>
+            <p>🎥 Vidéos</p>
           </nav>
         </aside>
 
@@ -208,7 +275,9 @@ function Projects() {
               "Aucune description."}
           </p>
 
-          <p>⏱️ {selectedEpisode.duration} minutes</p>
+          <p>
+            ⏱️ {selectedEpisode.duration} minutes
+          </p>
 
           <h2>🎬 Scènes</h2>
 
@@ -216,52 +285,45 @@ function Projects() {
             <p>Aucune scène pour le moment.</p>
           ) : (
             <div className="project-grid">
-              {selectedEpisode.scenes.map((scene, index) => (
-                <div className="project-card" key={scene.id}>
-                  <h3>
-                    Scène {index + 1} — {scene.title}
-                  </h3>
+              {selectedEpisode.scenes.map(
+                (scene, index) => (
+                  <div
+                    className="project-card"
+                    key={scene.id}
+                  >
+                    <h3>
+                      Scène {index + 1} —{" "}
+                      {scene.title}
+                    </h3>
 
-                  <p>
-                    {scene.description || "Aucune description."}
-                  </p>
+                    <p>
+                      {scene.description ||
+                        "Aucune description."}
+                    </p>
 
-                  <p>
-                    🎭 {scene.characterImages.length} image(s)
-                    personnage
-                  </p>
+                    <p>
+                      🎭{" "}
+                      {scene.characters.length} personnage(s)
+                    </p>
 
-                  <p>
-                    🌍 {scene.locationImages.length} image(s)
-                    lieu
-                  </p>
+                    <p>
+                      🎨{" "}
+                      {scene.styleImages.length} image(s)
+                      de référence
+                    </p>
 
-                  <p>
-                    🎞️{" "}
-                    {scene.movementVideo
-                      ? "Vidéo de mouvement"
-                      : "Pas de vidéo de mouvement"}
-                  </p>
-
-                  <p>
-                    📷{" "}
-                    {scene.cameraImage
-                      ? "Référence caméra"
-                      : "Pas de référence caméra"}
-                  </p>
-
-                  <p>
-                    🎨 {scene.styleImages.length} image(s) de
-                    style
-                  </p>
-
-                  <p>⏱️ {scene.duration} minutes</p>
-                </div>
-              ))}
+                    <p>
+                      ⏱️ {scene.duration} minutes
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           )}
 
-          <button onClick={() => setShowSceneForm(true)}>
+          <button
+            onClick={() => setShowSceneForm(true)}
+          >
             + Nouvelle scène
           </button>
 
@@ -284,148 +346,64 @@ function Projects() {
                 placeholder="Description"
                 value={sceneDescription}
                 onChange={(event) =>
-                  setSceneDescription(event.target.value)
+                  setSceneDescription(
+                    event.target.value
+                  )
                 }
                 rows="4"
               />
 
-              <h3>🎭 Personnages</h3>
+              <h3>🎭 Personnages présents</h3>
 
-              <input
+              {selectedProject.characters.length ===
+              0 ? (
+                <p>
+                  Aucun personnage créé dans ce
+                  projet.
+                </p>
+              ) : (
+                selectedProject.characters.map(
+                  (character) => (
+                    <label
+                      key={character.id}
+                      style={{
+                        display: "block",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCharacterIds.includes(
+                          character.id
+                        )}
+                        onChange={() =>
+                          toggleCharacter(
+                            character.id
+                          )
+                        }
+                      />
+
+                      {" "}
+
+                      {character.name}
+                    </label>
+                  )
+                )
+              )}
+
+              <h3>🎥 Action / mise en scène</h3>
+
+              <textarea
                 className="project-input"
-                type="text"
-                placeholder="Noms des personnages"
-                value={sceneCharacters}
+                placeholder="Décrire ce que font les personnages..."
+                value={sceneAction}
                 onChange={(event) =>
-                  setSceneCharacters(event.target.value)
+                  setSceneAction(
+                    event.target.value
+                  )
                 }
+                rows="5"
               />
-
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) =>
-                  handleImages(event, setCharacterImages)
-                }
-              />
-
-              {characterImages.length > 0 && (
-                <div>
-                  {characterImages.map((image) => (
-                    <img
-                      key={image.id}
-                      src={image.url}
-                      alt={image.name}
-                      width="120"
-                    />
-                  ))}
-                </div>
-              )}
-
-              <h3>🌍 Lieu</h3>
-
-              <input
-                className="project-input"
-                type="text"
-                placeholder="Nom du lieu"
-                value={sceneLocation}
-                onChange={(event) =>
-                  setSceneLocation(event.target.value)
-                }
-              />
-
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) =>
-                  handleImages(event, setLocationImages)
-                }
-              />
-
-              {locationImages.length > 0 && (
-                <div>
-                  {locationImages.map((image) => (
-                    <img
-                      key={image.id}
-                      src={image.url}
-                      alt={image.name}
-                      width="120"
-                    />
-                  ))}
-                </div>
-              )}
-
-              <h3>🎞️ Mouvement</h3>
-
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideo}
-              />
-
-              {movementVideo && (
-                <video
-                  src={movementVideo.url}
-                  controls
-                  width="300"
-                />
-              )}
-
-              <h3>📷 Caméra</h3>
-
-              <p>
-                Image de référence pour le cadrage ou
-                l'angle de caméra.
-              </p>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-
-                  if (!file) return;
-
-                  setCameraImage({
-                    name: file.name,
-                    url: URL.createObjectURL(file),
-                  });
-                }}
-              />
-
-              {cameraImage && (
-                <img
-                  src={cameraImage.url}
-                  alt={cameraImage.name}
-                  width="200"
-                />
-              )}
-
-              <h3>🎨 Style visuel</h3>
-
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) =>
-                  handleImages(event, setStyleImages)
-                }
-              />
-
-              {styleImages.length > 0 && (
-                <div>
-                  {styleImages.map((image) => (
-                    <img
-                      key={image.id}
-                      src={image.url}
-                      alt={image.name}
-                      width="120"
-                    />
-                  ))}
-                </div>
-              )}
 
               <h3>💬 Dialogues</h3>
 
@@ -434,22 +412,55 @@ function Projects() {
                 placeholder="Dialogues de la scène"
                 value={sceneDialogue}
                 onChange={(event) =>
-                  setSceneDialogue(event.target.value)
+                  setSceneDialogue(
+                    event.target.value
+                  )
                 }
-                rows="4"
+                rows="5"
               />
 
-              <h3>🎥 Action / mise en scène</h3>
+              <h3>🎨 Style visuel</h3>
 
               <textarea
                 className="project-input"
-                placeholder="Décrire les mouvements et actions"
-                value={sceneAction}
+                placeholder="Décrire le style visuel..."
+                value={sceneStyle}
                 onChange={(event) =>
-                  setSceneAction(event.target.value)
+                  setSceneStyle(
+                    event.target.value
+                  )
                 }
                 rows="4"
               />
+
+              <p>
+                Images de référence du style
+              </p>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleStyleImages}
+              />
+
+              {sceneStyleImages.length > 0 && (
+                <div>
+                  {sceneStyleImages.map(
+                    (image) => (
+                      <img
+                        key={image.id}
+                        src={image.url}
+                        alt={image.name}
+                        width="120"
+                        style={{
+                          margin: "5px",
+                        }}
+                      />
+                    )
+                  )}
+                </div>
+              )}
 
               <h3>⏱️ Durée</h3>
 
@@ -460,13 +471,17 @@ function Projects() {
                 max="30"
                 value={sceneDuration}
                 onChange={(event) =>
-                  setSceneDuration(event.target.value)
+                  setSceneDuration(
+                    event.target.value
+                  )
                 }
               />
 
               <div className="form-actions">
                 <button
-                  onClick={() => setShowSceneForm(false)}
+                  onClick={() =>
+                    setShowSceneForm(false)
+                  }
                 >
                   Annuler
                 </button>
@@ -492,7 +507,11 @@ function Projects() {
         <aside className="sidebar">
           <h2>🎬 Cinema AI</h2>
 
-          <button onClick={() => setSelectedProject(null)}>
+          <button
+            onClick={() =>
+              setSelectedProject(null)
+            }
+          >
             ← Mes projets
           </button>
 
@@ -500,18 +519,155 @@ function Projects() {
             <p>📖 Histoire</p>
             <p>🎭 Personnages</p>
             <p>🌍 Lieux</p>
+            <p>🖼️ Images</p>
+            <p>🎞️ Mouvements</p>
             <p>🎬 Épisodes</p>
-            <p>🎞️ Vidéos</p>
+            <p>🎥 Vidéos</p>
           </nav>
         </aside>
 
         <main className="main">
           <h1>{selectedProject.name}</h1>
 
+          <h2>🎭 Personnages</h2>
+
+          {selectedProject.characters.length ===
+          0 ? (
+            <p>
+              Aucun personnage pour le moment.
+            </p>
+          ) : (
+            <div className="project-grid">
+              {selectedProject.characters.map(
+                (character) => (
+                  <div
+                    className="project-card"
+                    key={character.id}
+                  >
+                    {character.images.length >
+                      0 && (
+                      <img
+                        src={
+                          character.images[0].url
+                        }
+                        alt={character.name}
+                        width="180"
+                      />
+                    )}
+
+                    <h3>
+                      🎭 {character.name}
+                    </h3>
+
+                    <p>
+                      {character.description ||
+                        "Aucune description."}
+                    </p>
+
+                    <p>
+                      🖼️{" "}
+                      {character.images.length} image(s)
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={() =>
+              setShowCharacterForm(true)
+            }
+          >
+            + Nouveau personnage
+          </button>
+
+          {showCharacterForm && (
+            <div className="form-container">
+              <h2>Nouveau personnage</h2>
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Nom du personnage"
+                value={characterName}
+                onChange={(event) =>
+                  setCharacterName(
+                    event.target.value
+                  )
+                }
+              />
+
+              <textarea
+                className="project-input"
+                placeholder="Description du personnage"
+                value={characterDescription}
+                onChange={(event) =>
+                  setCharacterDescription(
+                    event.target.value
+                  )
+                }
+                rows="5"
+              />
+
+              <h3>
+                🖼️ Images de référence
+              </h3>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={
+                  handleCharacterImages
+                }
+              />
+
+              {characterImages.length > 0 && (
+                <div>
+                  {characterImages.map(
+                    (image) => (
+                      <img
+                        key={image.id}
+                        src={image.url}
+                        alt={image.name}
+                        width="120"
+                        style={{
+                          margin: "5px",
+                        }}
+                      />
+                    )
+                  )}
+                </div>
+              )}
+
+              <div className="form-actions">
+                <button
+                  onClick={() =>
+                    setShowCharacterForm(false)
+                  }
+                >
+                  Annuler
+                </button>
+
+                <button
+                  onClick={createCharacter}
+                >
+                  Créer le personnage
+                </button>
+              </div>
+            </div>
+          )}
+
+          <hr />
+
           <h2>🎬 Épisodes</h2>
 
-          {selectedProject.episodes.length === 0 ? (
-            <p>Aucun épisode pour le moment.</p>
+          {selectedProject.episodes.length ===
+          0 ? (
+            <p>
+              Aucun épisode pour le moment.
+            </p>
           ) : (
             <div className="project-grid">
               {selectedProject.episodes.map(
@@ -535,13 +691,16 @@ function Projects() {
                     </p>
 
                     <p>
-                      🎬 {episode.scenes.length} scène(s)
+                      🎬{" "}
+                      {episode.scenes.length} scène(s)
                     </p>
 
                     <button
                       className="open-button"
                       onClick={() =>
-                        openEpisode(episode)
+                        openEpisode(
+                          episode
+                        )
                       }
                     >
                       Ouvrir
@@ -553,7 +712,9 @@ function Projects() {
           )}
 
           <button
-            onClick={() => setShowEpisodeForm(true)}
+            onClick={() =>
+              setShowEpisodeForm(true)
+            }
           >
             + Nouvel épisode
           </button>
@@ -568,7 +729,9 @@ function Projects() {
                 placeholder="Titre de l'épisode"
                 value={episodeTitle}
                 onChange={(event) =>
-                  setEpisodeTitle(event.target.value)
+                  setEpisodeTitle(
+                    event.target.value
+                  )
                 }
               />
 
@@ -577,7 +740,9 @@ function Projects() {
                 placeholder="Description de l'épisode"
                 value={episodeDescription}
                 onChange={(event) =>
-                  setEpisodeDescription(event.target.value)
+                  setEpisodeDescription(
+                    event.target.value
+                  )
                 }
                 rows="5"
               />
@@ -589,7 +754,9 @@ function Projects() {
                 max="120"
                 value={episodeDuration}
                 onChange={(event) =>
-                  setEpisodeDuration(event.target.value)
+                  setEpisodeDuration(
+                    event.target.value
+                  )
                 }
               />
 
@@ -602,7 +769,9 @@ function Projects() {
                   Annuler
                 </button>
 
-                <button onClick={createEpisode}>
+                <button
+                  onClick={createEpisode}
+                >
                   Créer l'épisode
                 </button>
               </div>
@@ -619,13 +788,19 @@ function Projects() {
 
   return (
     <div className="app">
-      <Sidebar onNewProject={() => setShowForm(true)} />
+      <Sidebar
+        onNewProject={() =>
+          setShowForm(true)
+        }
+      />
 
       <main className="main">
         <h1>Mes projets</h1>
 
         {projects.length === 0 ? (
-          <p>Aucun projet pour le moment.</p>
+          <p>
+            Aucun projet pour le moment.
+          </p>
         ) : (
           <div className="project-grid">
             {projects.map((project) => (
@@ -633,15 +808,25 @@ function Projects() {
                 className="project-card"
                 key={project.id}
               >
-                <h3>🎬 {project.name}</h3>
+                <h3>
+                  🎬 {project.name}
+                </h3>
 
                 <p>
+                  🎭{" "}
+                  {project.characters.length} personnage(s)
+                </p>
+
+                <p>
+                  🎬{" "}
                   {project.episodes.length} épisode(s)
                 </p>
 
                 <button
                   className="open-button"
-                  onClick={() => openProject(project)}
+                  onClick={() =>
+                    openProject(project)
+                  }
                 >
                   Ouvrir
                 </button>
@@ -660,18 +845,24 @@ function Projects() {
               placeholder="Nom du projet"
               value={projectName}
               onChange={(event) =>
-                setProjectName(event.target.value)
+                setProjectName(
+                  event.target.value
+                )
               }
             />
 
             <div className="form-actions">
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() =>
+                  setShowForm(false)
+                }
               >
                 Annuler
               </button>
 
-              <button onClick={createProject}>
+              <button
+                onClick={createProject}
+              >
                 Créer
               </button>
             </div>
