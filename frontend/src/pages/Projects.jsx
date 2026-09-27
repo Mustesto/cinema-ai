@@ -24,6 +24,9 @@ function Projects() {
   const [editingScene, setEditingScene] =
     useState(null);
 
+  const [showAiData, setShowAiData] = useState(false);
+  const [aiDataScene, setAiDataScene] = useState(null);
+
   const [sceneTitle, setSceneTitle] =
     useState("");
   const [sceneDescription, setSceneDescription] =
@@ -687,6 +690,16 @@ function Projects() {
   // ==========================
   // SUPPRIMER SCÈNE
   // ==========================
+
+  function openAiData(scene) {
+    setAiDataScene(scene);
+    setShowAiData(true);
+  }
+
+  function closeAiData() {
+    setShowAiData(false);
+    setAiDataScene(null);
+  }
 
   function deleteScene(sceneId) {
     if (!selectedEpisode) {
@@ -1382,6 +1395,15 @@ function Projects() {
                               🗑️ Supprimer
                             </button>
 
+                            <button
+                              onClick={() =>
+                                openAiData(scene)
+                              }
+                              style={{ marginTop: "8px" }}
+                            >
+                              🔍 Voir les données IA
+                            </button>
+
                           </div>
                         );
                       }
@@ -1399,6 +1421,64 @@ function Projects() {
           >
             + Nouvelle scène
           </button>
+
+          {showAiData && aiDataScene && (
+            <div
+              className="form-container"
+              style={{
+                marginTop: "20px",
+                border: "2px solid #444",
+              }}
+            >
+              <h2>🔍 Données IA de la scène</h2>
+              <p>
+                Ces données montrent exactement ce qui sera transmis au futur module IA.
+              </p>
+
+              <pre
+                style={{
+                  background: "#111",
+                  color: "#eee",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  overflowX: "auto",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: "600px",
+                  overflowY: "auto",
+                }}
+              >
+                {JSON.stringify(
+                  aiDataScene.aiData || {
+                    characters: (aiDataScene.characterIds || []).map((characterId) => ({
+                      characterId,
+                      imageIds: aiDataScene.characterImageIds?.[String(characterId)] || [],
+                    })),
+                    locations: (aiDataScene.locationIds || []).map((locationId) => ({
+                      locationId,
+                      imageIds: aiDataScene.locationImageIds?.[String(locationId)] || [],
+                    })),
+                    movements: (aiDataScene.movementSteps || []).map((step) => ({
+                      movementId: step.id,
+                      destination: step.destination || "",
+                    })),
+                    action: aiDataScene.action || "",
+                    dialogue: aiDataScene.dialogue || "",
+                    visualStyle: {
+                      text: aiDataScene.style?.text || "",
+                      imageIds: (aiDataScene.style?.images || []).map((image) => image.id),
+                    },
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+
+              <button onClick={closeAiData}>
+                Fermer
+              </button>
+            </div>
+          )}
 
           {/* ==========================
               FORMULAIRE SCÈNE
