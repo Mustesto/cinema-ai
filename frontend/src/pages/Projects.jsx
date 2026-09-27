@@ -1,4 +1,4 @@
-
+```jsx
 import { useState } from "react";
 import Libraries from "../components/Libraries.jsx";
 
@@ -14,26 +14,48 @@ function Projects() {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
   const [episodeTitle, setEpisodeTitle] = useState("");
-  const [episodeDescription, setEpisodeDescription] = useState("");
-  const [showEpisodeForm, setShowEpisodeForm] = useState(false);
+  const [episodeDescription, setEpisodeDescription] =
+    useState("");
+  const [showEpisodeForm, setShowEpisodeForm] =
+    useState(false);
 
-  const [showSceneForm, setShowSceneForm] = useState(false);
-  const [editingScene, setEditingScene] = useState(null);
+  const [showSceneForm, setShowSceneForm] =
+    useState(false);
+  const [editingScene, setEditingScene] =
+    useState(null);
 
-  const [sceneTitle, setSceneTitle] = useState("");
-  const [sceneDescription, setSceneDescription] = useState("");
+  const [sceneTitle, setSceneTitle] =
+    useState("");
+  const [sceneDescription, setSceneDescription] =
+    useState("");
 
   // Description complète de toute la scène
-  const [sceneAction, setSceneAction] = useState("");
+  const [sceneAction, setSceneAction] =
+    useState("");
 
-  const [sceneDialogue, setSceneDialogue] = useState("");
-  const [sceneStyle, setSceneStyle] = useState("");
-  const [sceneStyleImages, setSceneStyleImages] = useState([]);
-  const [sceneDuration, setSceneDuration] = useState("5");
+  const [sceneDialogue, setSceneDialogue] =
+    useState("");
 
-  const [selectedCharacterIds, setSelectedCharacterIds] = useState([]);
-  const [selectedLocationId, setSelectedLocationId] = useState("");
-  const [selectedMovementIds, setSelectedMovementIds] = useState([]);
+  const [sceneStyle, setSceneStyle] =
+    useState("");
+
+  const [sceneStyleImages, setSceneStyleImages] =
+    useState([]);
+
+  const [sceneDuration, setSceneDuration] =
+    useState("5");
+
+  // Plusieurs personnages
+  const [selectedCharacterIds, setSelectedCharacterIds] =
+    useState([]);
+
+  // Plusieurs lieux
+  const [selectedLocationIds, setSelectedLocationIds] =
+    useState([]);
+
+  // Plusieurs mouvements
+  const [selectedMovementIds, setSelectedMovementIds] =
+    useState([]);
 
   // ==========================
   // PROJETS
@@ -123,8 +145,7 @@ function Projects() {
     const newEpisode = {
       id: Date.now(),
       title,
-      description:
-        episodeDescription.trim(),
+      description: episodeDescription.trim(),
       scenes: [],
     };
 
@@ -162,7 +183,10 @@ function Projects() {
     setSceneDuration("5");
 
     setSelectedCharacterIds([]);
-    setSelectedLocationId("");
+
+    // Plusieurs lieux
+    setSelectedLocationIds([]);
+
     setSelectedMovementIds([]);
 
     setEditingScene(null);
@@ -178,11 +202,14 @@ function Projects() {
     setEditingScene(scene);
 
     setSceneTitle(scene.title || "");
+
     setSceneDescription(
       scene.description || ""
     );
 
-    setSceneAction(scene.action || "");
+    setSceneAction(
+      scene.action || ""
+    );
 
     setSceneDialogue(
       scene.dialogue || ""
@@ -204,12 +231,33 @@ function Projects() {
       scene.characterIds || []
     );
 
-    setSelectedLocationId(
+    /*
+     * Nouveau format :
+     * une scène peut avoir plusieurs lieux.
+     *
+     * On accepte également l'ancien
+     * locationId pour éviter de perdre
+     * les anciennes scènes.
+     */
+    if (
+      Array.isArray(scene.locationIds)
+    ) {
+      setSelectedLocationIds(
+        scene.locationIds.map((id) =>
+          String(id)
+        )
+      );
+    } else if (
       scene.locationId !== undefined &&
-      scene.locationId !== null
-        ? String(scene.locationId)
-        : ""
-    );
+      scene.locationId !== null &&
+      scene.locationId !== ""
+    ) {
+      setSelectedLocationIds([
+        String(scene.locationId),
+      ]);
+    } else {
+      setSelectedLocationIds([]);
+    }
 
     setSelectedMovementIds(
       scene.movementIds || []
@@ -217,6 +265,10 @@ function Projects() {
 
     setShowSceneForm(true);
   }
+
+  // ==========================
+  // PERSONNAGES
+  // ==========================
 
   function toggleCharacter(characterId) {
     setSelectedCharacterIds(
@@ -243,6 +295,39 @@ function Projects() {
     );
   }
 
+  // ==========================
+  // LIEUX
+  // ==========================
+
+  function toggleLocation(locationId) {
+    setSelectedLocationIds(
+      (previous) => {
+        const exists = previous.some(
+          (id) =>
+            String(id) ===
+            String(locationId)
+        );
+
+        if (exists) {
+          return previous.filter(
+            (id) =>
+              String(id) !==
+              String(locationId)
+          );
+        }
+
+        return [
+          ...previous,
+          locationId,
+        ];
+      }
+    );
+  }
+
+  // ==========================
+  // MOUVEMENTS
+  // ==========================
+
   function toggleMovement(movementId) {
     setSelectedMovementIds(
       (previous) => {
@@ -268,6 +353,10 @@ function Projects() {
     );
   }
 
+  // ==========================
+  // IMAGES STYLE
+  // ==========================
+
   function handleStyleImages(event) {
     const files = Array.from(
       event.target.files || []
@@ -279,9 +368,7 @@ function Projects() {
           Date.now() +
           Math.random(),
         name: file.name,
-        url: URL.createObjectURL(
-          file
-        ),
+        url: URL.createObjectURL(file),
       })
     );
 
@@ -292,6 +379,10 @@ function Projects() {
       ]
     );
   }
+
+  // ==========================
+  // ENREGISTRER SCÈNE
+  // ==========================
 
   function saveScene() {
     const title = sceneTitle.trim();
@@ -315,9 +406,8 @@ function Projects() {
         sceneDescription.trim(),
 
       /*
-       * Description complète de toute la scène :
-       * déroulement, actions, déplacements,
-       * interactions, ambiance et mise en scène.
+       * Description complète de toute
+       * la scène.
        */
       action:
         sceneAction.trim(),
@@ -328,16 +418,15 @@ function Projects() {
       duration:
         sceneDuration,
 
+      // Plusieurs personnages
       characterIds:
         selectedCharacterIds,
 
-      locationId:
-        selectedLocationId
-          ? String(
-              selectedLocationId
-            )
-          : "",
+      // Plusieurs lieux
+      locationIds:
+        selectedLocationIds,
 
+      // Plusieurs mouvements
       movementIds:
         selectedMovementIds,
 
@@ -390,6 +479,10 @@ function Projects() {
 
     resetSceneForm();
   }
+
+  // ==========================
+  // SUPPRIMER SCÈNE
+  // ==========================
 
   function deleteScene(sceneId) {
     if (!selectedEpisode) {
@@ -617,7 +710,7 @@ function Projects() {
   }
 
   // ==========================
-  // LISTE DES ÉPISODES
+  // LISTE ÉPISODES
   // ==========================
 
   if (
@@ -883,17 +976,27 @@ function Projects() {
                                 )
                           );
 
-                        const location =
-                          selectedProject.locations.find(
+                        /*
+                         * Plusieurs lieux
+                         */
+                        const locations =
+                          selectedProject.locations.filter(
                             (
-                              item
+                              location
                             ) =>
-                              String(
-                                item.id
-                              ) ===
-                              String(
-                                scene.locationId
-                              )
+                              scene
+                                .locationIds
+                                ?.some(
+                                  (
+                                    id
+                                  ) =>
+                                    String(
+                                      id
+                                    ) ===
+                                    String(
+                                      location.id
+                                    )
+                                )
                           );
 
                         const movements =
@@ -956,11 +1059,34 @@ function Projects() {
                             <p>
                               🌍{" "}
                               {
-                                location
-                                  ? location.name
-                                  : "Aucun lieu"
-                              }
+                                locations.length
+                              }{" "}
+                              lieu(x)
                             </p>
+
+                            {locations.length >
+                              0 && (
+                              <ul>
+                                {
+                                  locations.map(
+                                    (
+                                      location
+                                    ) => (
+                                      <li
+                                        key={
+                                          location.id
+                                        }
+                                      >
+                                        🌍{" "}
+                                        {
+                                          location.name
+                                        }
+                                      </li>
+                                    )
+                                  )
+                                }
+                              </ul>
+                            )}
 
                             <p>
                               🎞️{" "}
@@ -1057,6 +1183,10 @@ function Projects() {
 
               <hr />
 
+              {/* ==========================
+                  PERSONNAGES
+                  ========================== */}
+
               <h3>
                 🎭 Personnages
               </h3>
@@ -1119,9 +1249,20 @@ function Projects() {
                 )
               }
 
+              {/* ==========================
+                  LIEUX
+                  ========================== */}
+
               <h3>
-                🌍 Lieu
+                🌍 Lieux
               </h3>
+
+              <p>
+                Une même scène peut
+                contenir plusieurs lieux.
+                Sélectionne tous les lieux
+                utilisés dans la scène.
+              </p>
 
               {
                 selectedProject
@@ -1133,48 +1274,57 @@ function Projects() {
                     les bibliothèques.
                   </p>
                 ) : (
-                  <select
-                    className="project-input"
-                    value={
-                      selectedLocationId
-                    }
-                    onChange={(event) =>
-                      setSelectedLocationId(
-                        event.target.value
-                      )
-                    }
-                  >
+                  selectedProject.locations.map(
+                    (
+                      location
+                    ) => (
+                      <label
+                        key={
+                          location.id
+                        }
+                        style={{
+                          display:
+                            "block",
+                          margin:
+                            "8px 0",
+                        }}
+                      >
 
-                    <option value="">
-                      Aucun lieu
-                    </option>
-
-                    {
-                      selectedProject
-                        .locations.map(
-                          (
-                            location
-                          ) => (
-                            <option
-                              key={
+                        <input
+                          type="checkbox"
+                          checked={selectedLocationIds.some(
+                            (
+                              id
+                            ) =>
+                              String(
+                                id
+                              ) ===
+                              String(
                                 location.id
-                              }
-                              value={String(
-                                location.id
-                              )}
-                            >
-                              🌍{" "}
-                              {
-                                location.name
-                              }
-                            </option>
-                          )
-                        )
-                    }
+                              )
+                          )}
+                          onChange={() =>
+                            toggleLocation(
+                              location.id
+                            )
+                          }
+                        />
 
-                  </select>
+                        {" "}
+                        🌍{" "}
+                        {
+                          location.name
+                        }
+
+                      </label>
+                    )
+                  )
                 )
               }
+
+              {/* ==========================
+                  MOUVEMENTS
+                  ========================== */}
 
               <h3>
                 🎞️ Mouvements
@@ -1240,6 +1390,10 @@ function Projects() {
 
               <hr />
 
+              {/* ==========================
+                  DESCRIPTION COMPLÈTE
+                  ========================== */}
+
               <h3>
                 🎬 Description complète
                 de la scène
@@ -1249,13 +1403,14 @@ function Projects() {
                 Décris ici toute la scène :
                 déroulement, actions des
                 personnages, déplacements,
+                passages d'un lieu à un autre,
                 interactions, ambiance et
                 mise en scène.
               </p>
 
               <textarea
                 className="project-input"
-                placeholder="Décris toute la scène en détail : ce qui se passe au début, les actions et déplacements des personnages, les interactions avec le lieu et les objets, l'ambiance, la mise en scène et ce qui se passe à la fin..."
+                placeholder="Décris toute la scène en détail : ce qui se passe au début, les actions et déplacements des personnages, les changements de lieu, les interactions avec les lieux et les objets, l'ambiance, la mise en scène et ce qui se passe à la fin..."
                 value={
                   sceneAction
                 }
@@ -1266,6 +1421,10 @@ function Projects() {
                 }
                 rows="12"
               />
+
+              {/* ==========================
+                  DIALOGUES
+                  ========================== */}
 
               <h3>
                 💬 Dialogues
@@ -1284,6 +1443,10 @@ function Projects() {
                 }
                 rows="6"
               />
+
+              {/* ==========================
+                  STYLE VISUEL
+                  ========================== */}
 
               <h3>
                 🎨 Style visuel
@@ -1320,6 +1483,7 @@ function Projects() {
                 sceneStyleImages.length >
                 0 && (
                   <div>
+
                     <p>
                       Images sélectionnées :
                     </p>
@@ -1342,9 +1506,14 @@ function Projects() {
                         )
                       )
                     }
+
                   </div>
                 )
               }
+
+              {/* ==========================
+                  DURÉE
+                  ========================== */}
 
               <h3>
                 ⏱️ Durée
@@ -1965,5 +2134,4 @@ function Projects() {
 }
 
 export default Projects;
-
-
+```
