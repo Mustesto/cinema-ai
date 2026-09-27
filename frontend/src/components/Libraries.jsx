@@ -5,6 +5,7 @@ function Libraries({ project, onUpdateProject }) {
     useState("characters");
 
   const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -18,6 +19,17 @@ function Libraries({ project, onUpdateProject }) {
     images: "🖼️ Images",
     movements: "🎞️ Mouvements",
   };
+
+  const items = project[activeLibrary] || [];
+
+  function resetForm() {
+    setName("");
+    setDescription("");
+    setImages([]);
+    setVideos([]);
+    setEditingItem(null);
+    setShowForm(false);
+  }
 
   function handleImages(event) {
     const files = Array.from(event.target.files || []);
@@ -49,35 +61,97 @@ function Libraries({ project, onUpdateProject }) {
     ]);
   }
 
-  function createItem() {
+  function openCreateForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(item) {
+    setEditingItem(item);
+
+    setName(item.name || "");
+    setDescription(item.description || "");
+
+    setImages(item.images || []);
+    setVideos(item.videos || []);
+
+    setShowForm(true);
+  }
+
+  function saveItem() {
     if (!name.trim()) return;
 
     const item = {
-      id: Date.now(),
+      id: editingItem
+        ? editingItem.id
+        : Date.now(),
+
       name: name.trim(),
-      description: description.trim(),
+
+      description:
+        description.trim(),
+
       images,
+
       videos,
     };
 
+    let updatedItems;
+
+    if (editingItem) {
+      updatedItems = items.map((existingItem) =>
+        existingItem.id === editingItem.id
+          ? item
+          : existingItem
+      );
+    } else {
+      updatedItems = [...items, item];
+    }
+
     const updatedProject = {
       ...project,
-      [activeLibrary]: [
-        ...(project[activeLibrary] || []),
-        item,
-      ],
+      [activeLibrary]: updatedItems,
     };
 
     onUpdateProject(updatedProject);
 
-    setName("");
-    setDescription("");
-    setImages([]);
-    setVideos([]);
-    setShowForm(false);
+    resetForm();
   }
 
-  const items = project[activeLibrary] || [];
+  function deleteItem(itemId) {
+    const confirmed = window.confirm(
+      "Supprimer cet élément ?"
+    );
+
+    if (!confirmed) return;
+
+    const updatedItems = items.filter(
+      (item) => item.id !== itemId
+    );
+
+    const updatedProject = {
+      ...project,
+      [activeLibrary]: updatedItems,
+    };
+
+    onUpdateProject(updatedProject);
+  }
+
+  function removeImage(imageId) {
+    setImages((previous) =>
+      previous.filter(
+        (image) => image.id !== imageId
+      )
+    );
+  }
+
+  function removeVideo(videoId) {
+    setVideos((previous) =>
+      previous.filter(
+        (video) => video.id !== videoId
+      )
+    );
+  }
 
   return (
     <div>
@@ -97,7 +171,7 @@ function Libraries({ project, onUpdateProject }) {
               key={key}
               onClick={() => {
                 setActiveLibrary(key);
-                setShowForm(false);
+                resetForm();
               }}
             >
               {label}
@@ -128,50 +202,93 @@ function Libraries({ project, onUpdateProject }) {
 
               {item.images?.length > 0 && (
                 <div>
-                  {item.images.map((image) => (
-                    <img
-                      key={image.id}
-                      src={image.url}
-                      alt={image.name}
-                      width="120"
-                      style={{
-                        margin: "5px",
-                      }}
-                    />
-                  ))}
+                  <strong>
+                    🖼️ Images
+                  </strong>
+
+                  <div>
+                    {item.images.map(
+                      (image) => (
+                        <img
+                          key={image.id}
+                          src={image.url}
+                          alt={image.name}
+                          width="120"
+                          style={{
+                            margin: "5px",
+                          }}
+                        />
+                      )
+                    )}
+                  </div>
                 </div>
               )}
 
               {item.videos?.length > 0 && (
                 <div>
-                  {item.videos.map((video) => (
-                    <video
-                      key={video.id}
-                      src={video.url}
-                      controls
-                      width="250"
-                      style={{
-                        margin: "5px",
-                      }}
-                    />
-                  ))}
+                  <strong>
+                    🎥 Vidéos
+                  </strong>
+
+                  <div>
+                    {item.videos.map(
+                      (video) => (
+                        <video
+                          key={video.id}
+                          src={video.url}
+                          controls
+                          width="250"
+                          style={{
+                            display: "block",
+                            margin: "10px 0",
+                          }}
+                        />
+                      )
+                    )}
+                  </div>
                 </div>
               )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginTop: "15px",
+                }}
+              >
+                <button
+                  onClick={() =>
+                    openEditForm(item)
+                  }
+                >
+                  ✏️ Modifier
+                </button>
+
+                <button
+                  onClick={() =>
+                    deleteItem(item.id)
+                  }
+                >
+                  🗑️ Supprimer
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      <button
-        onClick={() => setShowForm(true)}
-      >
-        + Ajouter
-      </button>
+      {!showForm && (
+        <button onClick={openCreateForm}>
+          + Ajouter
+        </button>
+      )}
 
       {showForm && (
         <div className="form-container">
           <h3>
-            Ajouter dans{" "}
+            {editingItem
+              ? "✏️ Modifier"
+              : "+ Ajouter"}{" "}
             {libraryNames[activeLibrary]}
           </h3>
 
@@ -187,10 +304,16 @@ function Libraries({ project, onUpdateProject }) {
 
           <textarea
             className="project-input"
-            placeholder="Description / texte"
+            placeholder={
+              activeLibrary === "movements"
+                ? "Description / instructions du mouvement"
+                : "Description"
+            }
             value={description}
             onChange={(event) =>
-              setDescription(event.target.value)
+              setDescription(
+                event.target.value
+              )
             }
             rows="5"
           />
@@ -204,9 +327,41 @@ function Libraries({ project, onUpdateProject }) {
             onChange={handleImages}
           />
 
+          {images.length > 0 && (
+            <div>
+              {images.map((image) => (
+                <div
+                  key={image.id}
+                  style={{
+                    display: "inline-block",
+                    margin: "5px",
+                  }}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    width="120"
+                  />
+
+                  <br />
+
+                  <button
+                    onClick={() =>
+                      removeImage(image.id)
+                    }
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {activeLibrary === "movements" && (
             <>
-              <h4>🎥 Vidéos de référence</h4>
+              <h4>
+                🎥 Vidéos de référence
+              </h4>
 
               <input
                 type="file"
@@ -214,20 +369,54 @@ function Libraries({ project, onUpdateProject }) {
                 multiple
                 onChange={handleVideos}
               />
+
+              {videos.length > 0 && (
+                <div>
+                  {videos.map((video) => (
+                    <div
+                      key={video.id}
+                      style={{
+                        margin: "10px 0",
+                      }}
+                    >
+                      <video
+                        src={video.url}
+                        controls
+                        width="300"
+                      />
+
+                      <br />
+
+                      <button
+                        onClick={() =>
+                          removeVideo(
+                            video.id
+                          )
+                        }
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
-          <div className="form-actions">
-            <button
-              onClick={() =>
-                setShowForm(false)
-              }
-            >
+          <div
+            className="form-actions"
+            style={{
+              marginTop: "20px",
+            }}
+          >
+            <button onClick={resetForm}>
               Annuler
             </button>
 
-            <button onClick={createItem}>
-              Enregistrer
+            <button onClick={saveItem}>
+              {editingItem
+                ? "Enregistrer les modifications"
+                : "Créer"}
             </button>
           </div>
         </div>
