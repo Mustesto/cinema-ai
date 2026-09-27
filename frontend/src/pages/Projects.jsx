@@ -1,4 +1,4 @@
-
+```jsx
 import { useState } from "react";
 import Libraries from "../components/Libraries.jsx";
 
@@ -28,20 +28,14 @@ function Projects() {
     useState("");
   const [sceneDescription, setSceneDescription] =
     useState("");
-
-  // Description complète de toute la scène
   const [sceneAction, setSceneAction] =
     useState("");
-
   const [sceneDialogue, setSceneDialogue] =
     useState("");
-
   const [sceneStyle, setSceneStyle] =
     useState("");
-
   const [sceneStyleImages, setSceneStyleImages] =
     useState([]);
-
   const [sceneDuration, setSceneDuration] =
     useState("5");
 
@@ -53,8 +47,25 @@ function Projects() {
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
 
-  // Plusieurs mouvements
-  const [selectedMovementIds, setSelectedMovementIds] =
+  /*
+   * Mouvements de la scène.
+   *
+   * Exemple :
+   *
+   * [
+   *   {
+   *     id: 10,
+   *     destination: "Porte principale"
+   *   },
+   *   {
+   *     id: 20,
+   *     destination: "Intérieur du café"
+   *   }
+   * ]
+   *
+   * L'ordre du tableau = ordre des mouvements.
+   */
+  const [sceneMovements, setSceneMovements] =
     useState([]);
 
   // ==========================
@@ -72,6 +83,7 @@ function Projects() {
       characters: [],
       locations: [],
       images: [],
+      videos: [],
       movements: [],
       episodes: [],
     };
@@ -128,7 +140,10 @@ function Projects() {
   function goToSection(section) {
     setActiveSection(section);
 
-    if (section !== "episode") {
+    if (
+      section !== "episode" &&
+      section !== "episodes"
+    ) {
       setSelectedEpisode(null);
     }
   }
@@ -170,7 +185,7 @@ function Projects() {
   }
 
   // ==========================
-  // SCÈNES
+  // SCÈNE
   // ==========================
 
   function resetSceneForm() {
@@ -183,11 +198,8 @@ function Projects() {
     setSceneDuration("5");
 
     setSelectedCharacterIds([]);
-
-    // Plusieurs lieux
     setSelectedLocationIds([]);
-
-    setSelectedMovementIds([]);
+    setSceneMovements([]);
 
     setEditingScene(null);
     setShowSceneForm(false);
@@ -202,66 +214,76 @@ function Projects() {
     setEditingScene(scene);
 
     setSceneTitle(scene.title || "");
-
-    setSceneDescription(
-      scene.description || ""
-    );
-
-    setSceneAction(
-      scene.action || ""
-    );
-
-    setSceneDialogue(
-      scene.dialogue || ""
-    );
-
-    setSceneStyle(
-      scene.style?.text || ""
-    );
-
-    setSceneStyleImages(
-      scene.style?.images || []
-    );
-
-    setSceneDuration(
-      scene.duration || "5"
-    );
+    setSceneDescription(scene.description || "");
+    setSceneAction(scene.action || "");
+    setSceneDialogue(scene.dialogue || "");
+    setSceneStyle(scene.style?.text || "");
+    setSceneStyleImages(scene.style?.images || []);
+    setSceneDuration(scene.duration || "5");
 
     setSelectedCharacterIds(
       scene.characterIds || []
     );
 
-    /*
-     * Nouveau format :
-     * une scène peut avoir plusieurs lieux.
-     *
-     * On accepte également l'ancien
-     * locationId pour éviter de perdre
-     * les anciennes scènes.
-     */
-    if (
-      Array.isArray(scene.locationIds)
-    ) {
+    // Compatibilité avec les anciennes scènes
+    if (Array.isArray(scene.locationIds)) {
       setSelectedLocationIds(
-        scene.locationIds.map((id) =>
-          String(id)
-        )
+        scene.locationIds
       );
     } else if (
       scene.locationId !== undefined &&
-      scene.locationId !== null &&
-      scene.locationId !== ""
+      scene.locationId !== null
     ) {
       setSelectedLocationIds([
-        String(scene.locationId),
+        scene.locationId,
       ]);
     } else {
       setSelectedLocationIds([]);
     }
 
-    setSelectedMovementIds(
-      scene.movementIds || []
-    );
+    /*
+     * Nouveau format des mouvements :
+     *
+     * movementSteps: [
+     *   {
+     *     id: bibliothèqueMovementId,
+     *     destination: "Porte"
+     *   }
+     * ]
+     *
+     * Compatibilité avec l'ancien
+     * movementIds.
+     */
+    if (
+      Array.isArray(scene.movementSteps)
+    ) {
+      setSceneMovements(
+        scene.movementSteps
+      );
+    } else if (
+      Array.isArray(scene.movementIds)
+    ) {
+      setSceneMovements(
+        scene.movementIds.map(
+          (movementId) => {
+            const movement =
+              selectedProject?.movements?.find(
+                (item) =>
+                  String(item.id) ===
+                  String(movementId)
+              );
+
+            return {
+              id: movementId,
+              destination:
+                movement?.destination || "",
+            };
+          }
+        )
+      );
+    } else {
+      setSceneMovements([]);
+    }
 
     setShowSceneForm(true);
   }
@@ -328,27 +350,117 @@ function Projects() {
   // MOUVEMENTS
   // ==========================
 
-  function toggleMovement(movementId) {
-    setSelectedMovementIds(
+  function addMovementToScene(movement) {
+    const alreadyAdded =
+      sceneMovements.some(
+        (item) =>
+          String(item.id) ===
+          String(movement.id)
+      );
+
+    if (alreadyAdded) {
+      return;
+    }
+
+    /*
+     * La destination de la bibliothèque
+     * sert de destination initiale.
+     *
+     * L'utilisateur peut ensuite
+     * la modifier uniquement pour
+     * cette scène.
+     */
+    const sceneMovement = {
+      id: movement.id,
+      destination:
+        movement.destination || "",
+    };
+
+    setSceneMovements(
+      (previous) => [
+        ...previous,
+        sceneMovement,
+      ]
+    );
+  }
+
+  function removeMovementFromScene(
+    index
+  ) {
+    setSceneMovements(
+      (previous) =>
+        previous.filter(
+          (_, movementIndex) =>
+            movementIndex !== index
+        )
+    );
+  }
+
+  function updateMovementDestination(
+    index,
+    destination
+  ) {
+    setSceneMovements(
+      (previous) =>
+        previous.map(
+          (movement, movementIndex) =>
+            movementIndex === index
+              ? {
+                  ...movement,
+                  destination,
+                }
+              : movement
+        )
+    );
+  }
+
+  function moveMovementUp(index) {
+    if (index <= 0) return;
+
+    setSceneMovements(
       (previous) => {
-        const exists = previous.some(
-          (id) =>
-            String(id) ===
-            String(movementId)
-        );
-
-        if (exists) {
-          return previous.filter(
-            (id) =>
-              String(id) !==
-              String(movementId)
-          );
-        }
-
-        return [
+        const newList = [
           ...previous,
-          movementId,
         ];
+
+        const temporary =
+          newList[index - 1];
+
+        newList[index - 1] =
+          newList[index];
+
+        newList[index] =
+          temporary;
+
+        return newList;
+      }
+    );
+  }
+
+  function moveMovementDown(index) {
+    if (
+      index >=
+      sceneMovements.length - 1
+    ) {
+      return;
+    }
+
+    setSceneMovements(
+      (previous) => {
+        const newList = [
+          ...previous,
+        ];
+
+        const temporary =
+          newList[index + 1];
+
+        newList[index + 1] =
+          newList[index];
+
+        newList[index] =
+          temporary;
+
+        return newList;
       }
     );
   }
@@ -368,7 +480,9 @@ function Projects() {
           Date.now() +
           Math.random(),
         name: file.name,
-        url: URL.createObjectURL(file),
+        url: URL.createObjectURL(
+          file
+        ),
       })
     );
 
@@ -381,7 +495,7 @@ function Projects() {
   }
 
   // ==========================
-  // ENREGISTRER SCÈNE
+  // SAUVEGARDER SCÈNE
   // ==========================
 
   function saveScene() {
@@ -406,8 +520,8 @@ function Projects() {
         sceneDescription.trim(),
 
       /*
-       * Description complète de toute
-       * la scène.
+       * Description complète
+       * de toute la scène.
        */
       action:
         sceneAction.trim(),
@@ -418,17 +532,31 @@ function Projects() {
       duration:
         sceneDuration,
 
-      // Plusieurs personnages
       characterIds:
         selectedCharacterIds,
 
-      // Plusieurs lieux
       locationIds:
         selectedLocationIds,
 
-      // Plusieurs mouvements
+      /*
+       * Nouveau système.
+       *
+       * L'ordre du tableau est
+       * l'ordre d'exécution.
+       */
+      movementSteps:
+        sceneMovements,
+
+      /*
+       * On conserve aussi movementIds
+       * pour faciliter la compatibilité
+       * avec les anciennes données.
+       */
       movementIds:
-        selectedMovementIds,
+        sceneMovements.map(
+          (movement) =>
+            movement.id
+        ),
 
       style: {
         text:
@@ -489,12 +617,11 @@ function Projects() {
       return;
     }
 
-    const confirmed =
-      window.confirm(
+    if (
+      !window.confirm(
         "Supprimer cette scène ?"
-      );
-
-    if (!confirmed) {
+      )
+    ) {
       return;
     }
 
@@ -531,7 +658,7 @@ function Projects() {
   }
 
   // ==========================
-  // MENU GAUCHE
+  // SIDEBAR
   // ==========================
 
   function SidebarMenu() {
@@ -710,7 +837,7 @@ function Projects() {
   }
 
   // ==========================
-  // LISTE ÉPISODES
+  // ÉPISODES
   // ==========================
 
   if (
@@ -739,19 +866,12 @@ function Projects() {
             🎬 Épisodes
           </h1>
 
-          <p>
-            {
-              selectedProject.name
-            }
-          </p>
-
           {
             selectedProject
               .episodes.length ===
             0 ? (
               <p>
-                Aucun épisode
-                pour le moment.
+                Aucun épisode.
               </p>
             ) : (
               <div className="project-grid">
@@ -772,8 +892,10 @@ function Projects() {
 
                           <h3>
                             🎬 Épisode{" "}
-                            {index +
-                              1}
+                            {
+                              index +
+                              1
+                            }
                           </h3>
 
                           <h4>
@@ -837,7 +959,6 @@ function Projects() {
 
               <input
                 className="project-input"
-                type="text"
                 placeholder="Titre"
                 value={
                   episodeTitle
@@ -942,8 +1063,7 @@ function Projects() {
               .scenes.length ===
             0 ? (
               <p>
-                Aucune scène
-                pour le moment.
+                Aucune scène.
               </p>
             ) : (
               <div className="project-grid">
@@ -976,9 +1096,6 @@ function Projects() {
                                 )
                           );
 
-                        /*
-                         * Plusieurs lieux
-                         */
                         const locations =
                           selectedProject.locations.filter(
                             (
@@ -1000,23 +1117,35 @@ function Projects() {
                           );
 
                         const movements =
-                          selectedProject.movements.filter(
+                          scene.movementSteps ||
+                          (
+                            scene.movementIds ||
+                            []
+                          ).map(
                             (
-                              movement
-                            ) =>
-                              scene
-                                .movementIds
-                                ?.some(
+                              movementId
+                            ) => {
+                              const movement =
+                                selectedProject.movements.find(
                                   (
-                                    id
+                                    item
                                   ) =>
                                     String(
-                                      id
+                                      item.id
                                     ) ===
                                     String(
-                                      movement.id
+                                      movementId
                                     )
-                                )
+                                );
+
+                              return {
+                                id:
+                                  movementId,
+                                destination:
+                                  movement?.destination ||
+                                  "",
+                              };
+                            }
                           );
 
                         return (
@@ -1064,37 +1193,90 @@ function Projects() {
                               lieu(x)
                             </p>
 
-                            {locations.length >
-                              0 && (
-                              <ul>
-                                {
-                                  locations.map(
-                                    (
-                                      location
-                                    ) => (
-                                      <li
-                                        key={
-                                          location.id
-                                        }
-                                      >
-                                        🌍{" "}
-                                        {
-                                          location.name
-                                        }
-                                      </li>
-                                    )
-                                  )
-                                }
-                              </ul>
+                            {locations.map(
+                              (
+                                location
+                              ) => (
+                                <div
+                                  key={
+                                    location.id
+                                  }
+                                >
+                                  🌍{" "}
+                                  {
+                                    location.name
+                                  }
+                                </div>
+                              )
                             )}
 
-                            <p>
-                              🎞️{" "}
-                              {
-                                movements.length
-                              }{" "}
-                              mouvement(s)
-                            </p>
+                            <hr />
+
+                            <h4>
+                              🎞️ Mouvements
+                            </h4>
+
+                            {movements.length ===
+                            0 ? (
+                              <p>
+                                Aucun mouvement.
+                              </p>
+                            ) : (
+                              movements.map(
+                                (
+                                  step,
+                                  movementIndex
+                                ) => {
+
+                                  const movement =
+                                    selectedProject.movements.find(
+                                      (
+                                        item
+                                      ) =>
+                                        String(
+                                          item.id
+                                        ) ===
+                                        String(
+                                          step.id
+                                        )
+                                    );
+
+                                  return (
+                                    <div
+                                      key={`${scene.id}-${movementIndex}`}
+                                      style={{
+                                        marginBottom:
+                                          "12px",
+                                      }}
+                                    >
+
+                                      <strong>
+                                        {
+                                          movementIndex +
+                                          1
+                                        }.
+                                        {" "}
+                                        🎞️{" "}
+                                        {
+                                          movement?.name ||
+                                          "Mouvement"
+                                        }
+                                      </strong>
+
+                                      <div>
+                                        🎯{" "}
+                                        {
+                                          step.destination ||
+                                          movement?.destination ||
+                                          "Aucune destination"
+                                        }
+                                      </div>
+
+                                    </div>
+                                  );
+                                }
+                              )
+                            )}
 
                             <p>
                               ⏱️{" "}
@@ -1142,6 +1324,10 @@ function Projects() {
             + Nouvelle scène
           </button>
 
+          {/* ==========================
+              FORMULAIRE SCÈNE
+              ========================== */}
+
           {showSceneForm && (
             <div className="form-container">
 
@@ -1155,7 +1341,6 @@ function Projects() {
 
               <input
                 className="project-input"
-                type="text"
                 placeholder="Titre de la scène"
                 value={
                   sceneTitle
@@ -1183,9 +1368,7 @@ function Projects() {
 
               <hr />
 
-              {/* ==========================
-                  PERSONNAGES
-                  ========================== */}
+              {/* PERSONNAGES */}
 
               <h3>
                 🎭 Personnages
@@ -1197,8 +1380,6 @@ function Projects() {
                 0 ? (
                   <p>
                     Aucun personnage.
-                    Ajoute-en dans
-                    les bibliothèques.
                   </p>
                 ) : (
                   selectedProject.characters.map(
@@ -1249,19 +1430,16 @@ function Projects() {
                 )
               }
 
-              {/* ==========================
-                  LIEUX
-                  ========================== */}
+              {/* LIEUX */}
 
               <h3>
                 🌍 Lieux
               </h3>
 
               <p>
-                Une même scène peut
-                contenir plusieurs lieux.
-                Sélectionne tous les lieux
-                utilisés dans la scène.
+                Plusieurs lieux peuvent
+                être utilisés dans la même
+                scène.
               </p>
 
               {
@@ -1270,8 +1448,6 @@ function Projects() {
                 0 ? (
                   <p>
                     Aucun lieu.
-                    Ajoute-en dans
-                    les bibliothèques.
                   </p>
                 ) : (
                   selectedProject.locations.map(
@@ -1322,95 +1498,331 @@ function Projects() {
                 )
               }
 
-              {/* ==========================
-                  MOUVEMENTS
-                  ========================== */}
+              {/* MOUVEMENTS */}
+
+              <hr />
 
               <h3>
-                🎞️ Mouvements
+                🎞️ Mouvements de la scène
               </h3>
 
-              {
-                selectedProject
-                  .movements.length ===
-                0 ? (
-                  <p>
-                    Aucun mouvement.
-                    Ajoute-en dans
-                    les bibliothèques.
-                  </p>
-                ) : (
-                  selectedProject.movements.map(
-                    (
-                      movement
-                    ) => (
-                      <label
-                        key={
-                          movement.id
-                        }
-                        style={{
-                          display:
-                            "block",
-                          margin:
-                            "8px 0",
-                        }}
-                      >
+              <p>
+                Ajoute les mouvements
+                depuis ta bibliothèque.
+                Tu peux ensuite changer
+                leur ordre et leur
+                destination pour cette
+                scène.
+              </p>
 
-                        <input
-                          type="checkbox"
-                          checked={selectedMovementIds.some(
+              {selectedProject
+                .movements
+                ?.length === 0 ? (
+                <p>
+                  Aucun mouvement dans
+                  la bibliothèque.
+                  <br />
+                  Va dans 📚 Bibliothèques
+                  → 🎞️ Mouvements pour
+                  en créer.
+                </p>
+              ) : (
+                <div>
+
+                  <h4>
+                    Ajouter un mouvement
+                  </h4>
+
+                  <div
+                    style={{
+                      display:
+                        "grid",
+                      gap: "8px",
+                    }}
+                  >
+                    {selectedProject.movements.map(
+                      (
+                        movement
+                      ) => {
+
+                        const alreadyAdded =
+                          sceneMovements.some(
                             (
-                              id
+                              item
                             ) =>
                               String(
-                                id
+                                item.id
                               ) ===
                               String(
                                 movement.id
                               )
-                          )}
-                          onChange={() =>
-                            toggleMovement(
+                          );
+
+                        return (
+                          <button
+                            key={
                               movement.id
-                            )
-                          }
-                        />
+                            }
+                            disabled={
+                              alreadyAdded
+                            }
+                            onClick={() =>
+                              addMovementToScene(
+                                movement
+                              )
+                            }
+                            style={{
+                              textAlign:
+                                "left",
+                              padding:
+                                "10px",
+                            }}
+                          >
+                            {alreadyAdded
+                              ? "✓ "
+                              : "+ "}
+                            🎞️{" "}
+                            {
+                              movement.name
+                            }
 
-                        {" "}
-                        🎞️{" "}
-                        {
-                          movement.name
-                        }
+                            {movement.destination && (
+                              <>
+                                {" "}
+                                →{" "}
+                                {
+                                  movement.destination
+                                }
+                              </>
+                            )}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
 
-                      </label>
+                  <hr />
+
+                  <h4>
+                    Séquence de la scène
+                  </h4>
+
+                  {sceneMovements.length ===
+                  0 ? (
+                    <p>
+                      Aucun mouvement
+                      sélectionné.
+                    </p>
+                  ) : (
+                    sceneMovements.map(
+                      (
+                        step,
+                        index
+                      ) => {
+
+                        const movement =
+                          selectedProject.movements.find(
+                            (
+                              item
+                            ) =>
+                              String(
+                                item.id
+                              ) ===
+                              String(
+                                step.id
+                              )
+                          );
+
+                        return (
+                          <div
+                            key={`${step.id}-${index}`}
+                            style={{
+                              border:
+                                "1px solid #ccc",
+                              borderRadius:
+                                "8px",
+                              padding:
+                                "12px",
+                              marginBottom:
+                                "10px",
+                            }}
+                          >
+
+                            <h4>
+                              {index +
+                                1}
+                              .{" "}
+                              🎞️{" "}
+                              {
+                                movement?.name ||
+                                "Mouvement"
+                              }
+                            </h4>
+
+                            {movement
+                              ?.description && (
+                              <p>
+                                {
+                                  movement.description
+                                }
+                              </p>
+                            )}
+
+                            {/* APERÇU IMAGE */}
+
+                            {movement
+                              ?.previewImage
+                              ?.url && (
+                              <img
+                                src={
+                                  movement
+                                    .previewImage
+                                    .url
+                                }
+                                alt={
+                                  movement.name
+                                }
+                                style={{
+                                  width:
+                                    "180px",
+                                  maxHeight:
+                                    "120px",
+                                  objectFit:
+                                    "cover",
+                                  borderRadius:
+                                    "6px",
+                                }}
+                              />
+                            )}
+
+                            {/* APERÇU VIDÉO */}
+
+                            {movement
+                              ?.previewVideo
+                              ?.url && (
+                              <video
+                                controls
+                                src={
+                                  movement
+                                    .previewVideo
+                                    .url
+                                }
+                                style={{
+                                  width:
+                                    "240px",
+                                  maxHeight:
+                                    "160px",
+                                  display:
+                                    "block",
+                                  marginTop:
+                                    "8px",
+                                }}
+                              />
+                            )}
+
+                            <label
+                              style={{
+                                display:
+                                  "block",
+                                marginTop:
+                                  "10px",
+                              }}
+                            >
+                              🎯 Destination
+                            </label>
+
+                            <input
+                              className="project-input"
+                              placeholder="Exemple : Porte principale"
+                              value={
+                                step.destination ||
+                                ""
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateMovementDestination(
+                                  index,
+                                  event
+                                    .target
+                                    .value
+                                )
+                              }
+                            />
+
+                            <div
+                              className="form-actions"
+                            >
+
+                              <button
+                                disabled={
+                                  index ===
+                                  0
+                                }
+                                onClick={() =>
+                                  moveMovementUp(
+                                    index
+                                  )
+                                }
+                              >
+                                ↑
+                              </button>
+
+                              <button
+                                disabled={
+                                  index ===
+                                  sceneMovements.length -
+                                    1
+                                }
+                                onClick={() =>
+                                  moveMovementDown(
+                                    index
+                                  )
+                                }
+                              >
+                                ↓
+                              </button>
+
+                              <button
+                                onClick={() =>
+                                  removeMovementFromScene(
+                                    index
+                                  )
+                                }
+                              >
+                                🗑️ Retirer
+                              </button>
+
+                            </div>
+
+                          </div>
+                        );
+                      }
                     )
-                  )
-                )
-              }
+                  )}
+
+                </div>
+              )}
+
+              {/* ACTION */}
 
               <hr />
 
-              {/* ==========================
-                  DESCRIPTION COMPLÈTE
-                  ========================== */}
-
               <h3>
-                🎬 Description complète
-                de la scène
+                🎬 Action / mise en scène
               </h3>
 
               <p>
                 Décris ici toute la scène :
-                déroulement, actions des
-                personnages, déplacements,
-                passages d'un lieu à un autre,
-                interactions, ambiance et
+                déroulement, actions,
+                déplacements, interactions,
+                changements de lieux et
                 mise en scène.
               </p>
 
               <textarea
                 className="project-input"
-                placeholder="Décris toute la scène en détail : ce qui se passe au début, les actions et déplacements des personnages, les changements de lieu, les interactions avec les lieux et les objets, l'ambiance, la mise en scène et ce qui se passe à la fin..."
+                placeholder="Décris toute la scène en détail..."
                 value={
                   sceneAction
                 }
@@ -1422,9 +1834,7 @@ function Projects() {
                 rows="12"
               />
 
-              {/* ==========================
-                  DIALOGUES
-                  ========================== */}
+              {/* DIALOGUES */}
 
               <h3>
                 💬 Dialogues
@@ -1444,9 +1854,7 @@ function Projects() {
                 rows="6"
               />
 
-              {/* ==========================
-                  STYLE VISUEL
-                  ========================== */}
+              {/* STYLE */}
 
               <h3>
                 🎨 Style visuel
@@ -1479,41 +1887,7 @@ function Projects() {
                 }
               />
 
-              {
-                sceneStyleImages.length >
-                0 && (
-                  <div>
-
-                    <p>
-                      Images sélectionnées :
-                    </p>
-
-                    {
-                      sceneStyleImages.map(
-                        (
-                          image
-                        ) => (
-                          <div
-                            key={
-                              image.id
-                            }
-                          >
-                            🖼️{" "}
-                            {
-                              image.name
-                            }
-                          </div>
-                        )
-                      )
-                    }
-
-                  </div>
-                )
-              }
-
-              {/* ==========================
-                  DURÉE
-                  ========================== */}
+              {/* DURÉE */}
 
               <h3>
                 ⏱️ Durée
@@ -1638,8 +2012,8 @@ function Projects() {
           </h1>
 
           <p>
-            La bibliothèque vidéo
-            sera développée ensuite.
+            Les vidéos du projet
+            seront accessibles ici.
           </p>
 
         </main>
@@ -1730,13 +2104,13 @@ function Projects() {
 
             <div className="project-card">
               <h3>
-                🖼️ Images
+                🎞️ Mouvements
               </h3>
 
               <p>
                 {
                   selectedProject
-                    .images.length
+                    .movements.length
                 }
               </p>
 
@@ -1753,13 +2127,13 @@ function Projects() {
 
             <div className="project-card">
               <h3>
-                🎞️ Mouvements
+                🖼️ Images
               </h3>
 
               <p>
                 {
                   selectedProject
-                    .movements.length
+                    .images.length
                 }
               </p>
 
@@ -1921,7 +2295,7 @@ function Projects() {
   }
 
   // ==========================
-  // PAGE MES PROJETS
+  // MES PROJETS
   // ==========================
 
   return (
@@ -1937,44 +2311,42 @@ function Projects() {
           📁 Mes projets
         </h3>
 
-        {
-          projects.length ===
-          0 ? (
-            <p>
-              Aucun projet
-            </p>
-          ) : (
-            projects.map(
-              (project) => (
-                <button
-                  key={
-                    project.id
-                  }
-                  onClick={() =>
-                    openProject(
-                      project
-                    )
-                  }
-                  style={{
-                    display:
-                      "block",
-                    width:
-                      "100%",
-                    textAlign:
-                      "left",
-                    marginBottom:
-                      "6px",
-                  }}
-                >
-                  🎬{" "}
-                  {
-                    project.name
-                  }
-                </button>
-              )
+        {projects.length ===
+        0 ? (
+          <p>
+            Aucun projet
+          </p>
+        ) : (
+          projects.map(
+            (project) => (
+              <button
+                key={
+                  project.id
+                }
+                onClick={() =>
+                  openProject(
+                    project
+                  )
+                }
+                style={{
+                  display:
+                    "block",
+                  width:
+                    "100%",
+                  textAlign:
+                    "left",
+                  marginBottom:
+                    "6px",
+                }}
+              >
+                🎬{" "}
+                {
+                  project.name
+                }
+              </button>
             )
           )
-        }
+        )}
 
         <button
           onClick={() =>
@@ -2134,4 +2506,4 @@ function Projects() {
 }
 
 export default Projects;
-
+```
