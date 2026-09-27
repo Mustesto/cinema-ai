@@ -16,8 +16,15 @@ function Projects() {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
   const [showSceneForm, setShowSceneForm] = useState(false);
+
   const [sceneTitle, setSceneTitle] = useState("");
   const [sceneDescription, setSceneDescription] = useState("");
+  const [sceneCharacters, setSceneCharacters] = useState("");
+  const [sceneLocation, setSceneLocation] = useState("");
+  const [sceneDialogue, setSceneDialogue] = useState("");
+  const [sceneAction, setSceneAction] = useState("");
+  const [sceneCamera, setSceneCamera] = useState("");
+  const [sceneStyle, setSceneStyle] = useState("");
   const [sceneDuration, setSceneDuration] = useState("2");
 
   function createProject() {
@@ -77,6 +84,12 @@ function Projects() {
       id: Date.now(),
       title,
       description: sceneDescription.trim(),
+      characters: sceneCharacters.trim(),
+      location: sceneLocation.trim(),
+      dialogue: sceneDialogue.trim(),
+      action: sceneAction.trim(),
+      camera: sceneCamera.trim(),
+      style: sceneStyle.trim(),
       duration: sceneDuration,
     };
 
@@ -105,7 +118,14 @@ function Projects() {
 
     setSceneTitle("");
     setSceneDescription("");
+    setSceneCharacters("");
+    setSceneLocation("");
+    setSceneDialogue("");
+    setSceneAction("");
+    setSceneCamera("");
+    setSceneStyle("");
     setSceneDuration("2");
+
     setShowSceneForm(false);
   }
 
@@ -163,11 +183,44 @@ function Projects() {
                   </h3>
 
                   <p>
-                    {scene.description ||
-                      "Aucune description."}
+                    <strong>📝 Description :</strong>{" "}
+                    {scene.description || "Aucune"}
                   </p>
 
-                  <p>⏱️ {scene.duration} minutes</p>
+                  <p>
+                    <strong>🎭 Personnages :</strong>{" "}
+                    {scene.characters || "Aucun"}
+                  </p>
+
+                  <p>
+                    <strong>🌍 Lieu :</strong>{" "}
+                    {scene.location || "Aucun"}
+                  </p>
+
+                  <p>
+                    <strong>💬 Dialogues :</strong>{" "}
+                    {scene.dialogue || "Aucun"}
+                  </p>
+
+                  <p>
+                    <strong>🎥 Action :</strong>{" "}
+                    {scene.action || "Aucune"}
+                  </p>
+
+                  <p>
+                    <strong>📷 Caméra :</strong>{" "}
+                    {scene.camera || "Non définie"}
+                  </p>
+
+                  <p>
+                    <strong>🎨 Style :</strong>{" "}
+                    {scene.style || "Non défini"}
+                  </p>
+
+                  <p>
+                    <strong>⏱️ Durée :</strong>{" "}
+                    {scene.duration} minutes
+                  </p>
                 </div>
               ))}
             </div>
@@ -198,7 +251,67 @@ function Projects() {
                 onChange={(event) =>
                   setSceneDescription(event.target.value)
                 }
-                rows="5"
+                rows="4"
+              />
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Personnages présents"
+                value={sceneCharacters}
+                onChange={(event) =>
+                  setSceneCharacters(event.target.value)
+                }
+              />
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Lieu"
+                value={sceneLocation}
+                onChange={(event) =>
+                  setSceneLocation(event.target.value)
+                }
+              />
+
+              <textarea
+                className="project-input"
+                placeholder="Dialogues"
+                value={sceneDialogue}
+                onChange={(event) =>
+                  setSceneDialogue(event.target.value)
+                }
+                rows="4"
+              />
+
+              <textarea
+                className="project-input"
+                placeholder="Action / mise en scène"
+                value={sceneAction}
+                onChange={(event) =>
+                  setSceneAction(event.target.value)
+                }
+                rows="4"
+              />
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Caméra (ex: plan large, gros plan...)"
+                value={sceneCamera}
+                onChange={(event) =>
+                  setSceneCamera(event.target.value)
+                }
+              />
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Style visuel"
+                value={sceneStyle}
+                onChange={(event) =>
+                  setSceneStyle(event.target.value)
+                }
               />
 
               <input
@@ -206,6 +319,7 @@ function Projects() {
                 type="number"
                 min="1"
                 max="30"
+                placeholder="Durée en minutes"
                 value={sceneDuration}
                 onChange={(event) =>
                   setSceneDuration(event.target.value)
@@ -264,41 +378,36 @@ function Projects() {
             <p>Aucun épisode pour le moment.</p>
           ) : (
             <div className="project-grid">
-              {selectedProject.episodes.map(
-                (episode, index) => (
-                  <div
-                    className="project-card"
-                    key={episode.id}
+              {selectedProject.episodes.map((episode, index) => (
+                <div
+                  className="project-card"
+                  key={episode.id}
+                >
+                  <h3>
+                    Épisode {index + 1} — {episode.title}
+                  </h3>
+
+                  <p>
+                    {episode.description ||
+                      "Aucune description."}
+                  </p>
+
+                  <p>
+                    ⏱️ {episode.duration} minutes
+                  </p>
+
+                  <p>
+                    🎬 {episode.scenes.length} scène(s)
+                  </p>
+
+                  <button
+                    className="open-button"
+                    onClick={() => openEpisode(episode)}
                   >
-                    <h3>
-                      Épisode {index + 1} —{" "}
-                      {episode.title}
-                    </h3>
-
-                    <p>
-                      {episode.description ||
-                        "Aucune description."}
-                    </p>
-
-                    <p>
-                      ⏱️ {episode.duration} minutes
-                    </p>
-
-                    <p>
-                      🎬 {episode.scenes.length} scène(s)
-                    </p>
-
-                    <button
-                      className="open-button"
-                      onClick={() =>
-                        openEpisode(episode)
-                      }
-                    >
-                      Ouvrir
-                    </button>
-                  </div>
-                )
-              )}
+                    Ouvrir
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
