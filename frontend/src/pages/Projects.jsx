@@ -601,6 +601,46 @@ function Projects() {
         images:
           sceneStyleImages,
       },
+
+      // Données structurées destinées au futur module IA.
+      // Les ressources restent liées aux bibliothèques par leurs IDs.
+      aiData: {
+        characters: selectedCharacterIds.map((characterId) => ({
+          characterId,
+          imageIds:
+            selectedCharacterImageIds[String(characterId)] || [],
+        })),
+
+        locations: selectedLocationIds.map((locationId) => ({
+          locationId,
+          imageIds:
+            selectedLocationImageIds[String(locationId)] || [],
+        })),
+
+        movements: sceneMovements.map((step) => {
+          const movement = selectedProject.movements?.find(
+            (item) => String(item.id) === String(step.id)
+          );
+
+          return {
+            movementId: step.id,
+            destination: step.destination || "",
+            referenceVideo:
+              movement?.previewVideo?.url ||
+              movement?.video?.url ||
+              movement?.referenceVideo?.url ||
+              null,
+          };
+        }),
+
+        action: sceneAction.trim(),
+        dialogue: sceneDialogue.trim(),
+
+        visualStyle: {
+          text: sceneStyle.trim(),
+          imageIds: sceneStyleImages.map((image) => image.id),
+        },
+      },
     };
 
     const updatedEpisode = {
