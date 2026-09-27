@@ -5,7 +5,13 @@ function Projects() {
   const [showForm, setShowForm] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projects, setProjects] = useState([]);
+
   const [selectedProject, setSelectedProject] = useState(null);
+
+  const [showEpisodeForm, setShowEpisodeForm] = useState(false);
+  const [episodeTitle, setEpisodeTitle] = useState("");
+  const [episodeDescription, setEpisodeDescription] = useState("");
+  const [episodeDuration, setEpisodeDuration] = useState("30");
 
   function createProject() {
     const name = projectName.trim();
@@ -15,11 +21,48 @@ function Projects() {
     const newProject = {
       id: Date.now(),
       name,
+      episodes: [],
     };
 
     setProjects([...projects, newProject]);
     setProjectName("");
     setShowForm(false);
+  }
+
+  function createEpisode() {
+    const title = episodeTitle.trim();
+
+    if (!title || !selectedProject) return;
+
+    const newEpisode = {
+      id: Date.now(),
+      title,
+      description: episodeDescription.trim(),
+      duration: episodeDuration,
+      scenes: [],
+    };
+
+    const updatedProject = {
+      ...selectedProject,
+      episodes: [...selectedProject.episodes, newEpisode],
+    };
+
+    setProjects(
+      projects.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+
+    setSelectedProject(updatedProject);
+
+    setEpisodeTitle("");
+    setEpisodeDescription("");
+    setEpisodeDuration("30");
+    setShowEpisodeForm(false);
+  }
+
+  function openProject(project) {
+    setSelectedProject(project);
   }
 
   if (selectedProject) {
@@ -44,34 +87,96 @@ function Projects() {
         <main className="main">
           <h1>{selectedProject.name}</h1>
 
-          <p>Bienvenue dans votre projet cinématique.</p>
+          <h2>🎬 Épisodes</h2>
 
-          <div className="project-grid">
-            <div className="project-card">
-              <h3>📖 Histoire</h3>
-              <p>Construire l'histoire du projet.</p>
-            </div>
+          {selectedProject.episodes.length === 0 ? (
+            <p>Aucun épisode pour le moment.</p>
+          ) : (
+            <div className="project-grid">
+              {selectedProject.episodes.map((episode, index) => (
+                <div className="project-card" key={episode.id}>
+                  <h3>
+                    Épisode {index + 1} — {episode.title}
+                  </h3>
 
-            <div className="project-card">
-              <h3>🎭 Personnages</h3>
-              <p>Créer et gérer les personnages.</p>
-            </div>
+                  <p>{episode.description || "Aucune description."}</p>
 
-            <div className="project-card">
-              <h3>🌍 Lieux</h3>
-              <p>Créer les lieux et environnements.</p>
-            </div>
+                  <p>⏱️ {episode.duration} minutes</p>
 
-            <div className="project-card">
-              <h3>🎬 Épisodes</h3>
-              <p>Créer les épisodes et leurs scènes.</p>
-            </div>
+                  <p>🎬 {episode.scenes.length} scène(s)</p>
 
-            <div className="project-card">
-              <h3>🎞️ Vidéos</h3>
-              <p>Voir les vidéos générées.</p>
+                  <button className="open-button">
+                    Ouvrir
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
+
+          <button onClick={() => setShowEpisodeForm(true)}>
+            + Nouvel épisode
+          </button>
+
+          {showEpisodeForm && (
+            <div className="form-container">
+              <h2>Nouvel épisode</h2>
+
+              <input
+                className="project-input"
+                type="text"
+                placeholder="Titre de l'épisode"
+                value={episodeTitle}
+                onChange={(event) =>
+                  setEpisodeTitle(event.target.value)
+                }
+              />
+
+              <textarea
+                className="project-input"
+                placeholder="Description de l'épisode"
+                value={episodeDescription}
+                onChange={(event) =>
+                  setEpisodeDescription(event.target.value)
+                }
+                rows="5"
+              />
+
+              <input
+                className="project-input"
+                type="number"
+                min="1"
+                max="120"
+                value={episodeDuration}
+                onChange={(event) =>
+                  setEpisodeDuration(event.target.value)
+                }
+              />
+
+              <div className="form-actions">
+                <button onClick={() => setShowEpisodeForm(false)}>
+                  Annuler
+                </button>
+
+                <button onClick={createEpisode}>
+                  Créer l'épisode
+                </button>
+              </div>
+            </div>
+          )}
+
+          <hr />
+
+          <h2>📖 Histoire</h2>
+          <p>Construire l'histoire du projet.</p>
+
+          <h2>🎭 Personnages</h2>
+          <p>Créer et gérer les personnages.</p>
+
+          <h2>🌍 Lieux</h2>
+          <p>Créer les lieux et environnements.</p>
+
+          <h2>🎞️ Vidéos</h2>
+          <p>Les vidéos générées apparaîtront ici.</p>
         </main>
       </div>
     );
@@ -91,11 +196,14 @@ function Projects() {
             {projects.map((project) => (
               <div className="project-card" key={project.id}>
                 <h3>🎬 {project.name}</h3>
-                <p>0 épisode</p>
+
+                <p>
+                  {project.episodes.length} épisode(s)
+                </p>
 
                 <button
                   className="open-button"
-                  onClick={() => setSelectedProject(project)}
+                  onClick={() => openProject(project)}
                 >
                   Ouvrir
                 </button>
@@ -113,7 +221,9 @@ function Projects() {
               type="text"
               placeholder="Nom du projet"
               value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
+              onChange={(event) =>
+                setProjectName(event.target.value)
+              }
             />
 
             <div className="form-actions">
