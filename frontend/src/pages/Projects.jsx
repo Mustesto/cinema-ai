@@ -21,8 +21,6 @@ function Projects() {
 
   const [showSceneForm, setShowSceneForm] =
     useState(false);
-  const [showReferenceProposals, setShowReferenceProposals] = useState(false);
-  const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
   const [editingScene, setEditingScene] =
     useState(null);
 
@@ -376,7 +374,6 @@ function Projects() {
       id: movement.id,
       destination:
         movement.destination || "",
-      referenceVideo: null,
     };
 
     setSceneMovements(
@@ -466,36 +463,6 @@ function Projects() {
         return newList;
       }
     );
-  }
-
-  function proposeMovementReferences(index) {
-    setReferenceMovementIndex(index);
-    setShowReferenceProposals(true);
-  }
-
-  function chooseSimulatedReference(index, proposal) {
-    setSceneMovements((previous) =>
-      previous.map((item, itemIndex) =>
-        itemIndex === index
-          ? { ...item, referenceVideo: { type: "simulated", title: proposal.title, description: proposal.description, url: null } }
-          : item
-      )
-    );
-    setShowReferenceProposals(false);
-  }
-
-  function handleMovementVideoUpload(index, event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setSceneMovements((previous) =>
-      previous.map((item, itemIndex) =>
-        itemIndex === index
-          ? { ...item, referenceVideo: { type: "user", name: file.name, url } }
-          : item
-      )
-    );
-    event.target.value = "";
   }
 
   // ==========================
@@ -592,24 +559,11 @@ function Projects() {
         ),
 
       style: {
-        text: sceneStyle.trim(),
-        images: sceneStyleImages,
-      },
+        text:
+          sceneStyle.trim(),
 
-      aiData: {
-        characters: selectedCharacterIds.map((id) => ({ characterId: id, imageIds: [] })),
-        locations: selectedLocationIds.map((id) => ({ locationId: id, imageIds: [] })),
-        movements: sceneMovements.map((step) => ({
-          movementId: step.id,
-          destination: step.destination || "",
-          referenceVideo: step.referenceVideo || null,
-        })),
-        action: sceneAction.trim(),
-        dialogue: sceneDialogue.trim(),
-        visualStyle: {
-          text: sceneStyle.trim(),
-          imageIds: sceneStyleImages.map((image) => image.id),
-        },
+        images:
+          sceneStyleImages,
       },
     };
 
@@ -1343,6 +1297,28 @@ function Projects() {
                             </button>
 
                             <button
+                              onClick={() => {
+                                const aiData = {
+                                  sceneId: scene.id,
+                                  title: scene.title,
+                                  description: scene.description || "",
+                                  characterIds: scene.characterIds || [],
+                                  locationIds: scene.locationIds || [],
+                                  movements: scene.movementSteps || scene.movementIds || [],
+                                  action: scene.action || "",
+                                  dialogue: scene.dialogue || "",
+                                  style: scene.style || "",
+                                  referenceImages: scene.styleImages || []
+                                };
+                                window.alert(
+                                  JSON.stringify(aiData, null, 2)
+                                );
+                              }}
+                            >
+                              👁️ Voir les données IA
+                            </button>
+
+                            <button
                               onClick={() =>
                                 deleteScene(
                                   scene.id
@@ -1796,47 +1772,146 @@ function Projects() {
                               }
                             />
 
+                            
                             <div style={{ marginTop: "10px" }}>
-                              <button type="button" onClick={() => proposeMovementReferences(index)}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  generateReferenceProposals(movement, index)
+                                }
+                              >
                                 🤖 Proposer des références
                               </button>
 
-                              <label style={{ display: "inline-block", marginLeft: "8px", padding: "7px 10px", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer" }}>
+                              <label
+                                style={{
+                                  display: "inline-block",
+                                  marginLeft: "8px",
+                                  padding: "7px 10px",
+                                  border: "1px solid #ccc",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                }}
+                              >
                                 📤 Importer ma vidéo
-                                <input type="file" accept="video/*" style={{ display: "none" }} onChange={(event) => handleMovementVideoUpload(index, event)} />
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  style={{ display: "none" }}
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    if (!file) return;
+                                    const url = URL.createObjectURL(file);
+
+                                    setSceneMovements((previous) =>
+                                      previous.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? {
+                                              ...item,
+                                              referenceVideo: {
+                                                type: "user",
+                                                name: file.name,
+                                                url,
+                                              },
+                                            }
+                                          : item
+                                      )
+                                    );
+                                    event.target.value = "";
+                                  }}
+                                />
                               </label>
 
                               {step.referenceVideo && (
-                                <div style={{ marginTop: "8px", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}>
+                                <div style={{
+                                  marginTop: "8px",
+                                  padding: "8px",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "6px"
+                                }}>
                                   <strong>🎥 Référence sélectionnée</strong>
-                                  <div>{step.referenceVideo.name || step.referenceVideo.title}</div>
+                                  <div>
+                                    {step.referenceVideo.name ||
+                                      step.referenceVideo.title ||
+                                      "Vidéo de référence"}
+                                  </div>
                                   {step.referenceVideo.url && (
-                                    <video controls src={step.referenceVideo.url} style={{ width: "240px", maxHeight: "160px", marginTop: "6px" }} />
+                                    <video
+                                      controls
+                                      src={step.referenceVideo.url}
+                                      style={{
+                                        width: "240px",
+                                        maxHeight: "160px",
+                                        marginTop: "6px"
+                                      }}
+                                    />
                                   )}
                                 </div>
                               )}
                             </div>
 
-                            {showReferenceProposals && referenceMovementIndex === index && (
-                              <div style={{ marginTop: "12px", padding: "12px", border: "1px solid #aaa", borderRadius: "8px" }}>
-                                <strong>🤖 Références de démonstration — simulation</strong>
-                                <p>Ces propositions servent uniquement à tester le parcours.</p>
-                                {[
-                                  { title: `Marcher normalement vers ${step.destination || "la destination"}`, description: "Marche normale vers la destination." },
-                                  { title: `Marcher lentement vers ${step.destination || "la destination"}`, description: "Marche lente vers la destination." },
-                                  { title: `Marcher rapidement vers ${step.destination || "la destination"}`, description: "Marche rapide vers la destination." },
-                                ].map((proposal, proposalIndex) => (
-                                  <div key={proposalIndex} style={{ marginTop: "10px", padding: "10px", border: "1px solid #ddd", borderRadius: "6px" }}>
-                                    <div>🎞️ {proposal.title}</div>
-                                    <small>{proposal.description}</small><br />
-                                    <button type="button" onClick={() => chooseSimulatedReference(index, proposal)}>✅ Choisir</button>
-                                  </div>
-                                ))}
-                                <button type="button" onClick={() => setShowReferenceProposals(false)} style={{ marginTop: "10px" }}>Fermer</button>
-                              </div>
-                            )}
+                            {showReferenceProposals &&
+                              referenceMovementIndex === index && (
+                                <div style={{
+                                  marginTop: "12px",
+                                  padding: "12px",
+                                  border: "1px solid #aaa",
+                                  borderRadius: "8px"
+                                }}>
+                                  <strong>
+                                    🤖 Références de démonstration — simulation
+                                  </strong>
+                                  <p>Ces propositions servent uniquement à tester le parcours.</p>
 
-                            <div
+                                  {[
+                                    {
+                                      title: `Marcher normalement vers ${step.destination || "la destination"}`,
+                                      description: "Référence simulée : marche normale."
+                                    },
+                                    {
+                                      title: `Marcher lentement vers ${step.destination || "la destination"}`,
+                                      description: "Référence simulée : marche lente."
+                                    },
+                                    {
+                                      title: `Marcher rapidement vers ${step.destination || "la destination"}`,
+                                      description: "Référence simulée : marche rapide."
+                                    }
+                                  ].map((proposal, proposalIndex) => (
+                                    <div
+                                      key={proposalIndex}
+                                      style={{
+                                        marginTop: "10px",
+                                        padding: "10px",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "6px"
+                                      }}
+                                    >
+                                      <div>🎞️ {proposal.title}</div>
+                                      <small>{proposal.description}</small>
+                                      <br />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          chooseSimulatedReference(index, proposal)
+                                        }
+                                        style={{ marginTop: "6px" }}
+                                      >
+                                        ✅ Choisir
+                                      </button>
+                                    </div>
+                                  ))}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowReferenceProposals(false)}
+                                    style={{ marginTop: "10px" }}
+                                  >
+                                    Fermer
+                                  </button>
+                                </div>
+                              )}
+
+<div
                               className="form-actions"
                             >
 
@@ -2383,6 +2458,35 @@ function Projects() {
   // ==========================
   // MES PROJETS
   // ==========================
+
+  const [showReferenceProposals, setShowReferenceProposals] = useState(false);
+  const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
+
+  const generateReferenceProposals = (movement, index) => {
+    setReferenceMovementIndex(index);
+    setShowReferenceProposals(true);
+  };
+
+  const chooseSimulatedReference = (index, proposal) => {
+    setSceneMovements((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              referenceVideo: {
+                type: "simulated",
+                title: proposal.title,
+                description: proposal.description,
+                source: "demo",
+                url: proposal.url || null,
+              },
+            }
+          : item
+      )
+    );
+    setShowReferenceProposals(false);
+  };
+
 
   return (
     <div className="app">
