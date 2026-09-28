@@ -37,6 +37,8 @@ function Projects() {
   const [sceneStyleImages, setSceneStyleImages] =
     useState([]);
   const [sceneDuration, setSceneDuration] =
+  const [showPreparedAiData, setShowPreparedAiData] = useState(false);
+  const [preparedAiData, setPreparedAiData] = useState(null);
     useState("5");
 
   const [showReferenceProposals, setShowReferenceProposals] = useState(false);
@@ -103,6 +105,26 @@ function Projects() {
       )
     );
     setShowReferenceProposals(false);
+  };
+
+  const prepareSceneForAI = (scene) => {
+    const characters = (scene.characterIds || []).map((id) =>
+      (selectedProject?.characters || []).find((x) => String(x.id) === String(id))
+    ).filter(Boolean).map((x) => ({ id:x.id, name:x.name||x.title||"Personnage", description:x.description||"", imageReference:x.image||x.imageUrl||x.imageReference||null }));
+
+    const locations = (scene.locationIds || []).map((id) =>
+      (selectedProject?.locations || []).find((x) => String(x.id) === String(id))
+    ).filter(Boolean).map((x) => ({ id:x.id, name:x.name||x.title||"Lieu", description:x.description||"", imageReference:x.image||x.imageUrl||x.imageReference||null }));
+
+    const steps = scene.movementSteps || scene.movements || scene.movementIds || [];
+    const movements = steps.map((step) => {
+      const id = typeof step === "object" ? step.id : step;
+      const movement = (selectedProject?.movements || []).find((x) => String(x.id) === String(id));
+      const ref = typeof step === "object" ? step.referenceVideo || null : null;
+      return { id: movement?.id || id || null, name: movement?.name || movement?.title || (typeof step === "object" && step.name) || "Mouvement", description: movement?.description || (typeof step === "object" && step.description) || "", destination: (typeof step === "object" && step.destination) || movement?.destination || null, referenceVideo: ref ? { available:true, type:ref.type||"unknown", name:ref.name||ref.title||"Référence vidéo", source:ref.source||null, url:ref.url||null } : { available:false } };
+    });
+
+    return { version:"1.0", preparedAt:new Date().toISOString(), scene:{ id:scene.id, title:scene.title||"", description:scene.description||"", duration:scene.duration||"" }, characters, locations, movements, action:scene.action||"", dialogue:scene.dialogue||"", visualStyle:scene.style||"", referenceImages:scene.styleImages||[] };
   };
 
   function createProject() {
@@ -1475,6 +1497,19 @@ function Projects() {
                             >
                               👁️ Voir les données IA
                             </button>
+
+                            <button onClick={() => { const data = prepareSceneForAI(scene); setPreparedAiData(data); setShowPreparedAiData(true); }}>
+                              🧠 Préparer pour l’IA
+                            </button>
+
+                            {showPreparedAiData && preparedAiData && (
+                              <div style={{ marginTop:"12px", padding:"12px", border:"1px solid #aaa", borderRadius:"8px" }}>
+                                <h4>📦 Données préparées pour l’IA</h4>
+                                <p>Vérification avant connexion au moteur de génération.</p>
+                                <pre style={{ whiteSpace:"pre-wrap", overflowX:"auto", maxHeight:"500px", overflowY:"auto" }}>{JSON.stringify(preparedAiData, null, 2)}</pre>
+                                <button onClick={() => setShowPreparedAiData(false)}>Fermer</button>
+                              </div>
+                            )}
 
                             <button
                               onClick={() =>
