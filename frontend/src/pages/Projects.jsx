@@ -2458,9 +2458,7 @@ function Projects() {
     );
   }
 
-  // ==========================
-  // MES PROJETS
-  // ==========================
+
 
 
   const generateReferenceProposals = (movement, index) => {
@@ -2487,6 +2485,10 @@ function Projects() {
     );
     setShowReferenceProposals(false);
   };
+
+  // ==========================
+  // MES PROJETS
+  // ==========================
 
 
   return (
