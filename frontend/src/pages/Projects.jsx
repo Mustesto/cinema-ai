@@ -75,6 +75,36 @@ function Projects() {
   // PROJETS
   // ==========================
 
+
+
+
+
+
+  const generateReferenceProposals = (movement, index) => {
+    setReferenceMovementIndex(index);
+    setShowReferenceProposals(true);
+  };
+
+  const chooseSimulatedReference = (index, proposal) => {
+    setSceneMovements((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              referenceVideo: {
+                type: "simulated",
+                title: proposal.title,
+                description: proposal.description,
+                source: "demo",
+                url: proposal.url || null,
+              },
+            }
+          : item
+      )
+    );
+    setShowReferenceProposals(false);
+  };
+
   function createProject() {
     const name = projectName.trim();
 
@@ -1301,20 +1331,145 @@ function Projects() {
 
                             <button
                               onClick={() => {
+                                const characters =
+                                  (scene.characterIds || [])
+                                    .map((id) =>
+                                      (selectedProject?.characters || []).find(
+                                        (character) =>
+                                          String(character.id) === String(id)
+                                      )
+                                    )
+                                    .filter(Boolean);
+
+                                const locations =
+                                  (scene.locationIds || [])
+                                    .map((id) =>
+                                      (selectedProject?.locations || []).find(
+                                        (location) =>
+                                          String(location.id) === String(id)
+                                      )
+                                    )
+                                    .filter(Boolean);
+
+                                const movementSteps =
+                                  scene.movementSteps ||
+                                  scene.movements ||
+                                  [];
+
+                                const movements = movementSteps.map((step) => {
+                                  const movement = (
+                                    selectedProject?.movements || []
+                                  ).find(
+                                    (item) =>
+                                      String(item.id) === String(step.id)
+                                  );
+
+                                  return {
+                                    name:
+                                      movement?.name ||
+                                      movement?.title ||
+                                      "Mouvement",
+                                    destination:
+                                      step.destination ||
+                                      movement?.destination ||
+                                      "Aucune",
+                                    referenceVideo:
+                                      step.referenceVideo || null,
+                                  };
+                                });
+
                                 const aiData = {
-                                  sceneId: scene.id,
-                                  title: scene.title,
-                                  description: scene.description || "",
-                                  characterIds: scene.characterIds || [],
-                                  locationIds: scene.locationIds || [],
-                                  movements: scene.movementSteps || scene.movementIds || [],
+                                  scene: {
+                                    title: scene.title || "",
+                                    description: scene.description || "",
+                                    duration: scene.duration || "",
+                                  },
+                                  characters: characters.map((character) => ({
+                                    name:
+                                      character.name ||
+                                      character.title ||
+                                      "Personnage",
+                                    description:
+                                      character.description || "",
+                                  })),
+                                  locations: locations.map((location) => ({
+                                    name:
+                                      location.name ||
+                                      location.title ||
+                                      "Lieu",
+                                    description:
+                                      location.description || "",
+                                  })),
+                                  movements,
                                   action: scene.action || "",
                                   dialogue: scene.dialogue || "",
-                                  style: scene.style || "",
-                                  referenceImages: scene.styleImages || []
+                                  visualStyle: scene.style || "",
+                                  referenceImages:
+                                    scene.styleImages || [],
                                 };
+
                                 window.alert(
-                                  JSON.stringify(aiData, null, 2)
+                                  [
+                                    "🧠 DONNÉES IA",
+                                    "",
+                                    `🎬 Scène : ${aiData.scene.title}`,
+                                    aiData.scene.description
+                                      ? `Description : ${aiData.scene.description}`
+                                      : "",
+                                    aiData.scene.duration
+                                      ? `Durée : ${aiData.scene.duration}`
+                                      : "",
+                                    "",
+                                    "🎭 Personnages",
+                                    ...(aiData.characters.length
+                                      ? aiData.characters.map(
+                                          (item) => `• ${item.name}`
+                                        )
+                                      : ["• Aucun"]),
+                                    "",
+                                    "🌍 Lieux",
+                                    ...(aiData.locations.length
+                                      ? aiData.locations.map(
+                                          (item) => `• ${item.name}`
+                                        )
+                                      : ["• Aucun"]),
+                                    "",
+                                    "🎞️ Mouvements",
+                                    ...(aiData.movements.length
+                                      ? aiData.movements.flatMap(
+                                          (item, index) => [
+                                            `${index + 1}. ${item.name}`,
+                                            `   🎯 Destination : ${item.destination}`,
+                                            `   🎥 Référence : ${
+                                              item.referenceVideo
+                                                ? item.referenceVideo.name ||
+                                                  item.referenceVideo.title ||
+                                                  "Sélectionnée"
+                                                : "Aucune"
+                                            }`,
+                                          ]
+                                        )
+                                      : ["• Aucun"]),
+                                    "",
+                                    "🎬 Action / mise en scène",
+                                    aiData.action || "Aucune",
+                                    "",
+                                    "💬 Dialogues",
+                                    aiData.dialogue || "Aucun",
+                                    "",
+                                    "🎨 Style visuel",
+                                    aiData.visualStyle || "Aucun",
+                                    "",
+                                    "🖼️ Images de référence",
+                                    aiData.referenceImages.length
+                                      ? aiData.referenceImages.map(
+                                          (image) =>
+                                            `• ${image.name || "Image"}`
+                                        )
+                                      : ["• Aucune"],
+                                  ]
+                                    .filter(Boolean)
+                                    .join("\n")
                                 );
                               }}
                             >
@@ -1779,9 +1934,10 @@ function Projects() {
                             <div style={{ marginTop: "10px" }}>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  generateReferenceProposals(movement, index)
-                                }
+                                onClick={() => {
+                                  setReferenceMovementIndex(index);
+                                  setShowReferenceProposals(true);
+                                }}
                               >
                                 🤖 Proposer des références
                               </button>
@@ -2457,34 +2613,6 @@ function Projects() {
       </div>
     );
   }
-
-
-
-
-  const generateReferenceProposals = (movement, index) => {
-    setReferenceMovementIndex(index);
-    setShowReferenceProposals(true);
-  };
-
-  const chooseSimulatedReference = (index, proposal) => {
-    setSceneMovements((previous) =>
-      previous.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              referenceVideo: {
-                type: "simulated",
-                title: proposal.title,
-                description: proposal.description,
-                source: "demo",
-                url: proposal.url || null,
-              },
-            }
-          : item
-      )
-    );
-    setShowReferenceProposals(false);
-  };
 
   // ==========================
   // MES PROJETS
