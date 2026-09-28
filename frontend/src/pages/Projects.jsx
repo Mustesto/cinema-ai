@@ -39,6 +39,9 @@ function Projects() {
   const [sceneDuration, setSceneDuration] =
     useState("5");
 
+  const [showReferenceProposals, setShowReferenceProposals] = useState(false);
+  const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
+
   // Plusieurs personnages
   const [selectedCharacterIds, setSelectedCharacterIds] =
     useState([]);
@@ -2459,8 +2462,6 @@ function Projects() {
   // MES PROJETS
   // ==========================
 
-  const [showReferenceProposals, setShowReferenceProposals] = useState(false);
-  const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
 
   const generateReferenceProposals = (movement, index) => {
     setReferenceMovementIndex(index);
