@@ -37,9 +37,9 @@ function Projects() {
   const [sceneStyleImages, setSceneStyleImages] =
     useState([]);
   const [sceneDuration, setSceneDuration] =
+    useState("5");
   const [showPreparedAiData, setShowPreparedAiData] = useState(false);
   const [preparedAiData, setPreparedAiData] = useState(null);
-    useState("5");
 
   const [showReferenceProposals, setShowReferenceProposals] = useState(false);
   const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
