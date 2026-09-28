@@ -21,11 +21,10 @@ function Projects() {
 
   const [showSceneForm, setShowSceneForm] =
     useState(false);
+  const [showReferenceProposals, setShowReferenceProposals] = useState(false);
+  const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
   const [editingScene, setEditingScene] =
     useState(null);
-
-  const [showAiData, setShowAiData] = useState(false);
-  const [aiDataScene, setAiDataScene] = useState(null);
 
   const [sceneTitle, setSceneTitle] =
     useState("");
@@ -49,9 +48,6 @@ function Projects() {
   // Plusieurs lieux
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
-
-  const [selectedCharacterImageIds, setSelectedCharacterImageIds] = useState({});
-  const [selectedLocationImageIds, setSelectedLocationImageIds] = useState({});
 
   /*
    * Mouvements de la scène.
@@ -205,8 +201,6 @@ function Projects() {
 
     setSelectedCharacterIds([]);
     setSelectedLocationIds([]);
-    setSelectedCharacterImageIds({});
-    setSelectedLocationImageIds({});
     setSceneMovements([]);
 
     setEditingScene(null);
@@ -232,9 +226,6 @@ function Projects() {
     setSelectedCharacterIds(
       scene.characterIds || []
     );
-
-    setSelectedCharacterImageIds(scene.characterImageIds || {});
-    setSelectedLocationImageIds(scene.locationImageIds || {});
 
     // Compatibilité avec les anciennes scènes
     if (Array.isArray(scene.locationIds)) {
@@ -358,28 +349,6 @@ function Projects() {
   }
 
   // ==========================
-  // IMAGES PRÉCISES DE LA SCÈNE
-  // ==========================
-
-  function toggleCharacterImage(characterId, imageId) {
-    const key = String(characterId);
-    setSelectedCharacterImageIds((previous) => {
-      const current = previous[key] || [];
-      const exists = current.some((id) => String(id) === String(imageId));
-      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
-    });
-  }
-
-  function toggleLocationImage(locationId, imageId) {
-    const key = String(locationId);
-    setSelectedLocationImageIds((previous) => {
-      const current = previous[key] || [];
-      const exists = current.some((id) => String(id) === String(imageId));
-      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
-    });
-  }
-
-  // ==========================
   // MOUVEMENTS
   // ==========================
 
@@ -407,6 +376,7 @@ function Projects() {
       id: movement.id,
       destination:
         movement.destination || "",
+      referenceVideo: null,
     };
 
     setSceneMovements(
@@ -498,6 +468,36 @@ function Projects() {
     );
   }
 
+  function proposeMovementReferences(index) {
+    setReferenceMovementIndex(index);
+    setShowReferenceProposals(true);
+  }
+
+  function chooseSimulatedReference(index, proposal) {
+    setSceneMovements((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, referenceVideo: { type: "simulated", title: proposal.title, description: proposal.description, url: null } }
+          : item
+      )
+    );
+    setShowReferenceProposals(false);
+  }
+
+  function handleMovementVideoUpload(index, event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setSceneMovements((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, referenceVideo: { type: "user", name: file.name, url } }
+          : item
+      )
+    );
+    event.target.value = "";
+  }
+
   // ==========================
   // IMAGES STYLE
   // ==========================
@@ -568,14 +568,8 @@ function Projects() {
       characterIds:
         selectedCharacterIds,
 
-      characterImageIds:
-        selectedCharacterImageIds,
-
       locationIds:
         selectedLocationIds,
-
-      locationImageIds:
-        selectedLocationImageIds,
 
       /*
        * Nouveau système.
@@ -598,47 +592,20 @@ function Projects() {
         ),
 
       style: {
-        text:
-          sceneStyle.trim(),
-
-        images:
-          sceneStyleImages,
+        text: sceneStyle.trim(),
+        images: sceneStyleImages,
       },
 
-      // Données structurées destinées au futur module IA.
-      // Les ressources restent liées aux bibliothèques par leurs IDs.
       aiData: {
-        characters: selectedCharacterIds.map((characterId) => ({
-          characterId,
-          imageIds:
-            selectedCharacterImageIds[String(characterId)] || [],
+        characters: selectedCharacterIds.map((id) => ({ characterId: id, imageIds: [] })),
+        locations: selectedLocationIds.map((id) => ({ locationId: id, imageIds: [] })),
+        movements: sceneMovements.map((step) => ({
+          movementId: step.id,
+          destination: step.destination || "",
+          referenceVideo: step.referenceVideo || null,
         })),
-
-        locations: selectedLocationIds.map((locationId) => ({
-          locationId,
-          imageIds:
-            selectedLocationImageIds[String(locationId)] || [],
-        })),
-
-        movements: sceneMovements.map((step) => {
-          const movement = selectedProject.movements?.find(
-            (item) => String(item.id) === String(step.id)
-          );
-
-          return {
-            movementId: step.id,
-            destination: step.destination || "",
-            referenceVideo:
-              movement?.previewVideo?.url ||
-              movement?.video?.url ||
-              movement?.referenceVideo?.url ||
-              null,
-          };
-        }),
-
         action: sceneAction.trim(),
         dialogue: sceneDialogue.trim(),
-
         visualStyle: {
           text: sceneStyle.trim(),
           imageIds: sceneStyleImages.map((image) => image.id),
@@ -690,16 +657,6 @@ function Projects() {
   // ==========================
   // SUPPRIMER SCÈNE
   // ==========================
-
-  function openAiData(scene) {
-    setAiDataScene(scene);
-    setShowAiData(true);
-  }
-
-  function closeAiData() {
-    setShowAiData(false);
-    setAiDataScene(null);
-  }
 
   function deleteScene(sceneId) {
     if (!selectedEpisode) {
@@ -1395,15 +1352,6 @@ function Projects() {
                               🗑️ Supprimer
                             </button>
 
-                            <button
-                              onClick={() =>
-                                openAiData(scene)
-                              }
-                              style={{ marginTop: "8px" }}
-                            >
-                              🔍 Voir les données IA
-                            </button>
-
                           </div>
                         );
                       }
@@ -1421,64 +1369,6 @@ function Projects() {
           >
             + Nouvelle scène
           </button>
-
-          {showAiData && aiDataScene && (
-            <div
-              className="form-container"
-              style={{
-                marginTop: "20px",
-                border: "2px solid #444",
-              }}
-            >
-              <h2>🔍 Données IA de la scène</h2>
-              <p>
-                Ces données montrent exactement ce qui sera transmis au futur module IA.
-              </p>
-
-              <pre
-                style={{
-                  background: "#111",
-                  color: "#eee",
-                  padding: "15px",
-                  borderRadius: "8px",
-                  overflowX: "auto",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  maxHeight: "600px",
-                  overflowY: "auto",
-                }}
-              >
-                {JSON.stringify(
-                  aiDataScene.aiData || {
-                    characters: (aiDataScene.characterIds || []).map((characterId) => ({
-                      characterId,
-                      imageIds: aiDataScene.characterImageIds?.[String(characterId)] || [],
-                    })),
-                    locations: (aiDataScene.locationIds || []).map((locationId) => ({
-                      locationId,
-                      imageIds: aiDataScene.locationImageIds?.[String(locationId)] || [],
-                    })),
-                    movements: (aiDataScene.movementSteps || []).map((step) => ({
-                      movementId: step.id,
-                      destination: step.destination || "",
-                    })),
-                    action: aiDataScene.action || "",
-                    dialogue: aiDataScene.dialogue || "",
-                    visualStyle: {
-                      text: aiDataScene.style?.text || "",
-                      imageIds: (aiDataScene.style?.images || []).map((image) => image.id),
-                    },
-                  },
-                  null,
-                  2
-                )}
-              </pre>
-
-              <button onClick={closeAiData}>
-                Fermer
-              </button>
-            </div>
-          )}
 
           {/* ==========================
               FORMULAIRE SCÈNE
@@ -1586,37 +1476,6 @@ function Projects() {
                 )
               }
 
-              <div style={{ marginTop: "10px", marginBottom: "20px" }}>
-                <h4>🖼️ Images des personnages pour cette scène</h4>
-                {selectedProject.characters
-                  .filter((character) => selectedCharacterIds.some((id) => String(id) === String(character.id)))
-                  .map((character) => {
-                    const images = character.images || [];
-                    const selected = selectedCharacterImageIds[String(character.id)] || [];
-                    return (
-                      <div key={`scene-char-img-${character.id}`} style={{ marginBottom: "14px" }}>
-                        <strong>🎭 {character.name}</strong>
-                        {images.length === 0 ? (
-                          <p>Aucune image dans la bibliothèque.</p>
-                        ) : (
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px", marginTop: "8px" }}>
-                            {images.map((image) => {
-                              const checked = selected.some((id) => String(id) === String(image.id));
-                              return (
-                                <label key={image.id} style={{ border: checked ? "2px solid #333" : "1px solid #ccc", borderRadius: "6px", padding: "5px" }}>
-                                  <input type="checkbox" checked={checked} onChange={() => toggleCharacterImage(character.id, image.id)} />
-                                  <img src={image.url} alt={image.name || character.name} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px", display: "block", marginTop: "4px" }} />
-                                  <small>{image.name || "Image"}</small>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-
               {/* LIEUX */}
 
               <h3>
@@ -1684,37 +1543,6 @@ function Projects() {
                   )
                 )
               }
-
-              <div style={{ marginTop: "10px", marginBottom: "20px" }}>
-                <h4>🖼️ Images des lieux pour cette scène</h4>
-                {selectedProject.locations
-                  .filter((location) => selectedLocationIds.some((id) => String(id) === String(location.id)))
-                  .map((location) => {
-                    const images = location.images || [];
-                    const selected = selectedLocationImageIds[String(location.id)] || [];
-                    return (
-                      <div key={`scene-loc-img-${location.id}`} style={{ marginBottom: "14px" }}>
-                        <strong>🌍 {location.name}</strong>
-                        {images.length === 0 ? (
-                          <p>Aucune image dans la bibliothèque.</p>
-                        ) : (
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px", marginTop: "8px" }}>
-                            {images.map((image) => {
-                              const checked = selected.some((id) => String(id) === String(image.id));
-                              return (
-                                <label key={image.id} style={{ border: checked ? "2px solid #333" : "1px solid #ccc", borderRadius: "6px", padding: "5px" }}>
-                                  <input type="checkbox" checked={checked} onChange={() => toggleLocationImage(location.id, image.id)} />
-                                  <img src={image.url} alt={image.name || location.name} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px", display: "block", marginTop: "4px" }} />
-                                  <small>{image.name || "Image"}</small>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
 
               {/* MOUVEMENTS */}
 
@@ -1967,6 +1795,46 @@ function Projects() {
                                 )
                               }
                             />
+
+                            <div style={{ marginTop: "10px" }}>
+                              <button type="button" onClick={() => proposeMovementReferences(index)}>
+                                🤖 Proposer des références
+                              </button>
+
+                              <label style={{ display: "inline-block", marginLeft: "8px", padding: "7px 10px", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer" }}>
+                                📤 Importer ma vidéo
+                                <input type="file" accept="video/*" style={{ display: "none" }} onChange={(event) => handleMovementVideoUpload(index, event)} />
+                              </label>
+
+                              {step.referenceVideo && (
+                                <div style={{ marginTop: "8px", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}>
+                                  <strong>🎥 Référence sélectionnée</strong>
+                                  <div>{step.referenceVideo.name || step.referenceVideo.title}</div>
+                                  {step.referenceVideo.url && (
+                                    <video controls src={step.referenceVideo.url} style={{ width: "240px", maxHeight: "160px", marginTop: "6px" }} />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {showReferenceProposals && referenceMovementIndex === index && (
+                              <div style={{ marginTop: "12px", padding: "12px", border: "1px solid #aaa", borderRadius: "8px" }}>
+                                <strong>🤖 Références de démonstration — simulation</strong>
+                                <p>Ces propositions servent uniquement à tester le parcours.</p>
+                                {[
+                                  { title: `Marcher normalement vers ${step.destination || "la destination"}`, description: "Marche normale vers la destination." },
+                                  { title: `Marcher lentement vers ${step.destination || "la destination"}`, description: "Marche lente vers la destination." },
+                                  { title: `Marcher rapidement vers ${step.destination || "la destination"}`, description: "Marche rapide vers la destination." },
+                                ].map((proposal, proposalIndex) => (
+                                  <div key={proposalIndex} style={{ marginTop: "10px", padding: "10px", border: "1px solid #ddd", borderRadius: "6px" }}>
+                                    <div>🎞️ {proposal.title}</div>
+                                    <small>{proposal.description}</small><br />
+                                    <button type="button" onClick={() => chooseSimulatedReference(index, proposal)}>✅ Choisir</button>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={() => setShowReferenceProposals(false)} style={{ marginTop: "10px" }}>Fermer</button>
+                              </div>
+                            )}
 
                             <div
                               className="form-actions"
