@@ -40,6 +40,8 @@ function Projects() {
     useState("5");
   const [showPreparedAiData, setShowPreparedAiData] = useState(false);
   const [preparedAiData, setPreparedAiData] = useState(null);
+  const [aiTestLoading, setAiTestLoading] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState(null);
 
   const [showReferenceProposals, setShowReferenceProposals] = useState(false);
   const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
@@ -618,6 +620,44 @@ function Projects() {
   // ==========================
   // SAUVEGARDER SCÈNE
   // ==========================
+
+  async function testAiConnection(scene) {
+    setAiTestLoading(true);
+    setAiTestResult(null);
+
+    try {
+      const data = prepareSceneForAI(scene);
+
+      const response = await fetch(
+        "https://filmbackend-production-4f55.up.railway.app/api/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || `Erreur HTTP ${response.status}`
+        );
+      }
+
+      setAiTestResult({ success: true, data: result });
+    } catch (error) {
+      console.error("Erreur Tester l'envoi IA :", error);
+      setAiTestResult({
+        success: false,
+        message: error.message || "Erreur inconnue",
+      });
+    } finally {
+      setAiTestLoading(false);
+    }
+  }
 
   function saveScene() {
     const title = sceneTitle.trim();
@@ -1576,6 +1616,36 @@ function Projects() {
                             <button onClick={() => { const data = prepareSceneForAI(scene); setPreparedAiData(data); setShowPreparedAiData(true); }}>
                               🧠 Préparer pour l’IA
                             </button>
+
+                            <button
+                              type="button"
+                              onClick={() => testAiConnection(scene)}
+                              disabled={aiTestLoading}
+                            >
+                              {aiTestLoading
+                                ? "⏳ Envoi en cours..."
+                                : "🧪 Tester l’envoi IA"}
+                            </button>
+
+                            {aiTestResult && (
+                              <div style={{ marginTop: "12px", padding: "12px", border: "1px solid #aaa", borderRadius: "8px" }}>
+                                {aiTestResult.success ? (
+                                  <>
+                                    <strong>🟢 Envoi IA réussi</strong>
+                                    <pre style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>
+                                      {JSON.stringify(aiTestResult.data, null, 2)}
+                                    </pre>
+                                  </>
+                                ) : (
+                                  <>
+                                    <strong>🔴 Échec de l’envoi IA</strong>
+                                    <pre style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>
+                                      {aiTestResult.message}
+                                    </pre>
+                                  </>
+                                )}
+                              </div>
+                            )}
 
                             {showPreparedAiData && preparedAiData && (
                               <div style={{ marginTop:"12px", padding:"12px", border:"1px solid #aaa", borderRadius:"8px" }}>
