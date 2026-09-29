@@ -621,30 +621,103 @@ function Projects() {
   // SAUVEGARDER SCÈNE
   // ==========================
 
+  const AI_BACKEND_URL = "https://filmbackend-production-4f55.up.railway.app";
+
+  async function uploadReferenceImage(image, ownerType, ownerId) {
+    if (!image?.url || !String(image.url).startsWith("blob:")) {
+      return image;
+    }
+
+    const blobResponse = await fetch(image.url);
+    if (!blobResponse.ok) {
+      throw new Error(`Impossible de lire l'image ${image.name || image.id || "sélectionnée"}.`);
+    }
+
+    const blob = await blobResponse.blob();
+    const formData = new FormData();
+    const filename = image.name || `reference-${image.id || Date.now()}.jpg`;
+
+    formData.append("file", blob, filename);
+    formData.append("ownerType", ownerType);
+    formData.append("ownerId", String(ownerId ?? ""));
+    formData.append("referenceId", String(image.id ?? ""));
+
+    const response = await fetch(`${AI_BACKEND_URL}/api/assets`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success || !result.asset) {
+      throw new Error(result.message || `Erreur upload HTTP ${response.status}`);
+    }
+
+    return {
+      ...image,
+      url: result.asset.url,
+      storageUrl: result.asset.url,
+      uploaded: true,
+    };
+  }
+
+  async function prepareSceneAssetsForBackend(data) {
+    const characters = await Promise.all(
+      (data.characters || []).map(async (character) => ({
+        ...character,
+        imageReferences: await Promise.all(
+          (character.imageReferences || []).map((image) =>
+            uploadReferenceImage(image, "character", character.id)
+          )
+        ),
+      }))
+    );
+
+    const locations = await Promise.all(
+      (data.locations || []).map(async (location) => ({
+        ...location,
+        imageReferences: await Promise.all(
+          (location.imageReferences || []).map((image) =>
+            uploadReferenceImage(image, "location", location.id)
+          )
+        ),
+      }))
+    );
+
+    const referenceImages = await Promise.all(
+      (data.referenceImages || []).map((image) =>
+        uploadReferenceImage(image, "scene", data.scene?.id)
+      )
+    );
+
+    return {
+      ...data,
+      characters,
+      locations,
+      referenceImages,
+    };
+  }
+
   async function testAiConnection(scene) {
     setAiTestLoading(true);
     setAiTestResult(null);
 
     try {
-      const data = prepareSceneForAI(scene);
+      const preparedData = prepareSceneForAI(scene);
+      const data = await prepareSceneAssetsForBackend(preparedData);
 
-      const response = await fetch(
-        "https://filmbackend-production-4f55.up.railway.app/api/generate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const response = await fetch(`${AI_BACKEND_URL}/api/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.message || `Erreur HTTP ${response.status}`
-        );
+        throw new Error(result.message || `Erreur HTTP ${response.status}`);
       }
 
       setAiTestResult({ success: true, data: result });
