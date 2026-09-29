@@ -637,7 +637,7 @@ function Projects() {
     const formData = new FormData();
     const filename = image.name || `reference-${image.id || Date.now()}.jpg`;
 
-    formData.append("file", blob, filename);
+    formData.append("image", blob, filename);
     formData.append("ownerType", ownerType);
     formData.append("ownerId", String(ownerId ?? ""));
     formData.append("referenceId", String(image.id ?? ""));
