@@ -48,15 +48,19 @@ function Projects() {
   const [selectedCharacterIds, setSelectedCharacterIds] =
     useState([]);
 
-  // Images de référence de la bibliothèque choisies pour la scène.
-  const [selectedCharacterImageIds, setSelectedCharacterImageIds] =
-    useState({});
-  const [selectedLocationImageIds, setSelectedLocationImageIds] =
-    useState({});
-
   // Plusieurs lieux
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
+
+  // Images choisies pour chaque personnage de la scène.
+  // Format : { [characterId]: [imageId, ...] }
+  const [selectedCharacterImages, setSelectedCharacterImages] =
+    useState({});
+
+  // Images choisies pour chaque lieu de la scène.
+  // Format : { [locationId]: [imageId, ...] }
+  const [selectedLocationImages, setSelectedLocationImages] =
+    useState({});
 
   /*
    * Mouvements de la scène.
@@ -114,34 +118,110 @@ function Projects() {
   };
 
   const prepareSceneForAI = (scene) => {
-    const savedCharacterImages = Object.fromEntries((scene.aiData?.characters || []).map((item) => [String(item.characterId), item.imageIds || []]));
-    const savedLocationImages = Object.fromEntries((scene.aiData?.locations || []).map((item) => [String(item.locationId), item.imageIds || []]));
+    const characters = (scene.characterIds || [])
+      .map((id) =>
+        (selectedProject?.characters || []).find(
+          (x) => String(x.id) === String(id)
+        )
+      )
+      .filter(Boolean)
+      .map((x) => ({
+        id: x.id,
+        name: x.name || x.title || "Personnage",
+        description: x.description || "",
+        imageReferences: resolveSelectedImages(
+          x,
+          "character",
+          scene.characterImageReferences || {}
+        ),
+      }));
 
-    const characters = (scene.characterIds || []).map((id) =>
-      (selectedProject?.characters || []).find((x) => String(x.id) === String(id))
-    ).filter(Boolean).map((x) => {
-      const ids = savedCharacterImages[String(x.id)] || [];
-      const images = (x.images || []).filter((image) => ids.some((id) => String(id) === String(image.id)));
-      return { id:x.id, name:x.name||x.title||"Personnage", description:x.description||"", imageReferences:images.map((image)=>({id:image.id,name:image.name||"Image",url:image.url||null})) };
-    });
+    const locations = (scene.locationIds || [])
+      .map((id) =>
+        (selectedProject?.locations || []).find(
+          (x) => String(x.id) === String(id)
+        )
+      )
+      .filter(Boolean)
+      .map((x) => ({
+        id: x.id,
+        name: x.name || x.title || "Lieu",
+        description: x.description || "",
+        imageReferences: resolveSelectedImages(
+          x,
+          "location",
+          scene.locationImageReferences || {}
+        ),
+      }));
 
-    const locations = (scene.locationIds || []).map((id) =>
-      (selectedProject?.locations || []).find((x) => String(x.id) === String(id))
-    ).filter(Boolean).map((x) => {
-      const ids = savedLocationImages[String(x.id)] || [];
-      const images = (x.images || []).filter((image) => ids.some((id) => String(id) === String(image.id)));
-      return { id:x.id, name:x.name||x.title||"Lieu", description:x.description||"", imageReferences:images.map((image)=>({id:image.id,name:image.name||"Image",url:image.url||null})) };
-    });
+    const steps =
+      scene.movementSteps ||
+      scene.movements ||
+      scene.movementIds ||
+      [];
 
-    const steps = scene.movementSteps || scene.movements || scene.movementIds || [];
     const movements = steps.map((step) => {
-      const id = typeof step === "object" ? step.id : step;
-      const movement = (selectedProject?.movements || []).find((x) => String(x.id) === String(id));
-      const ref = typeof step === "object" ? step.referenceVideo || null : null;
-      return { id: movement?.id || id || null, name: movement?.name || movement?.title || (typeof step === "object" && step.name) || "Mouvement", description: movement?.description || (typeof step === "object" && step.description) || "", destination: (typeof step === "object" && step.destination) || movement?.destination || null, referenceVideo: ref ? { available:true, type:ref.type||"unknown", name:ref.name||ref.title||"Référence vidéo", source:ref.source||null, url:ref.url||null } : { available:false } };
+      const id =
+        typeof step === "object" ? step.id : step;
+      const movement =
+        (selectedProject?.movements || []).find(
+          (x) => String(x.id) === String(id)
+        );
+      const ref =
+        typeof step === "object"
+          ? step.referenceVideo || null
+          : null;
+
+      return {
+        id: movement?.id || id || null,
+        name:
+          movement?.name ||
+          movement?.title ||
+          (typeof step === "object" && step.name) ||
+          "Mouvement",
+        description:
+          movement?.description ||
+          (typeof step === "object" && step.description) ||
+          "",
+        destination:
+          (typeof step === "object" && step.destination) ||
+          movement?.destination ||
+          null,
+        referenceVideo: ref
+          ? {
+              available: true,
+              type: ref.type || "unknown",
+              name:
+                ref.name ||
+                ref.title ||
+                "Référence vidéo",
+              source: ref.source || null,
+              url: ref.url || null,
+            }
+          : { available: false },
+      };
     });
 
-    return { version:"1.0", preparedAt:new Date().toISOString(), scene:{ id:scene.id, title:scene.title||"", description:scene.description||"", duration:scene.duration||"" }, characters, locations, movements, action:scene.action||"", dialogue:scene.dialogue||"", visualStyle:scene.style||"", referenceImages:scene.styleImages||[] };
+    return {
+      version: "1.0",
+      preparedAt: new Date().toISOString(),
+      scene: {
+        id: scene.id,
+        title: scene.title || "",
+        description: scene.description || "",
+        duration: scene.duration || "",
+      },
+      characters,
+      locations,
+      movements,
+      action: scene.action || "",
+      dialogue: scene.dialogue || "",
+      visualStyle: {
+        text: scene.style?.text || scene.style || "",
+        images: scene.style?.images || scene.styleImages || [],
+      },
+      referenceImages: scene.style?.images || scene.styleImages || [],
+    };
   };
 
   function createProject() {
@@ -271,6 +351,8 @@ function Projects() {
 
     setSelectedCharacterIds([]);
     setSelectedLocationIds([]);
+    setSelectedCharacterImages({});
+    setSelectedLocationImages({});
     setSceneMovements([]);
 
     setEditingScene(null);
@@ -312,6 +394,14 @@ function Projects() {
     } else {
       setSelectedLocationIds([]);
     }
+
+    // Restaurer les images choisies dans la scène.
+    setSelectedCharacterImages(
+      scene.characterImageReferences || {}
+    );
+    setSelectedLocationImages(
+      scene.locationImageReferences || {}
+    );
 
     /*
      * Nouveau format des mouvements :
@@ -389,15 +479,6 @@ function Projects() {
     );
   }
 
-  function toggleCharacterImage(characterId, imageId) {
-    const key = String(characterId);
-    setSelectedCharacterImageIds((previous) => {
-      const current = previous[key] || [];
-      const exists = current.some((id) => String(id) === String(imageId));
-      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
-    });
-  }
-
   // ==========================
   // LIEUX
   // ==========================
@@ -427,13 +508,104 @@ function Projects() {
     );
   }
 
-  function toggleLocationImage(locationId, imageId) {
-    const key = String(locationId);
-    setSelectedLocationImageIds((previous) => {
-      const current = previous[key] || [];
-      const exists = current.some((id) => String(id) === String(imageId));
-      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
+  // ==========================
+  // IMAGES DES PERSONNAGES / LIEUX
+  // ==========================
+
+  function getLibraryImages(item, type) {
+    if (!item) return [];
+
+    const directImages =
+      item.images ||
+      item.imageReferences ||
+      item.imageReference ||
+      null;
+
+    if (Array.isArray(directImages)) {
+      return directImages.filter(Boolean);
+    }
+
+    if (directImages && typeof directImages === "object") {
+      return [directImages];
+    }
+
+    // Compatibilité avec une bibliothèque qui stocke les images
+    // au niveau du projet avec un ownerId / characterId / locationId.
+    const projectImages = Array.isArray(selectedProject?.images)
+      ? selectedProject.images
+      : [];
+
+    const ownerKey = type === "character"
+      ? "characterId"
+      : "locationId";
+
+    return projectImages.filter((image) =>
+      String(image?.[ownerKey] ?? image?.ownerId ?? "") ===
+      String(item.id)
+    );
+  }
+
+  function getImageId(image) {
+    return image?.id ?? image?.url ?? image?.name;
+  }
+
+  function toggleCharacterImage(characterId, image) {
+    const imageId = getImageId(image);
+    if (imageId == null) return;
+
+    setSelectedCharacterImages((previous) => {
+      const key = String(characterId);
+      const current = Array.isArray(previous[key])
+        ? previous[key]
+        : [];
+      const exists = current.some(
+        (id) => String(id) === String(imageId)
+      );
+
+      return {
+        ...previous,
+        [key]: exists
+          ? current.filter(
+              (id) => String(id) !== String(imageId)
+            )
+          : [...current, imageId],
+      };
     });
+  }
+
+  function toggleLocationImage(locationId, image) {
+    const imageId = getImageId(image);
+    if (imageId == null) return;
+
+    setSelectedLocationImages((previous) => {
+      const key = String(locationId);
+      const current = Array.isArray(previous[key])
+        ? previous[key]
+        : [];
+      const exists = current.some(
+        (id) => String(id) === String(imageId)
+      );
+
+      return {
+        ...previous,
+        [key]: exists
+          ? current.filter(
+              (id) => String(id) !== String(imageId)
+            )
+          : [...current, imageId],
+      };
+    });
+  }
+
+  function resolveSelectedImages(item, type, selectedMap) {
+    const images = getLibraryImages(item, type);
+    const selectedIds = selectedMap[String(item.id)] || [];
+
+    return images.filter((image) =>
+      selectedIds.some(
+        (id) => String(id) === String(getImageId(image))
+      )
+    );
   }
 
   // ==========================
@@ -628,6 +800,13 @@ function Projects() {
       locationIds:
         selectedLocationIds,
 
+      // Images sélectionnées pour les personnages et les lieux.
+      characterImageReferences:
+        selectedCharacterImages,
+
+      locationImageReferences:
+        selectedLocationImages,
+
       /*
        * Nouveau système.
        *
@@ -647,11 +826,6 @@ function Projects() {
           (movement) =>
             movement.id
         ),
-
-      aiData: {
-        characters: selectedCharacterIds.map((id) => ({ characterId: id, imageIds: selectedCharacterImageIds[String(id)] || [] })),
-        locations: selectedLocationIds.map((id) => ({ locationId: id, imageIds: selectedLocationImageIds[String(id)] || [] })),
-      },
 
       style: {
         text:
@@ -1453,6 +1627,12 @@ function Projects() {
                                       "Personnage",
                                     description:
                                       character.description || "",
+                                    imageReferences:
+                                      resolveSelectedImages(
+                                        character,
+                                        "character",
+                                        scene.characterImageReferences || {}
+                                      ),
                                   })),
                                   locations: locations.map((location) => ({
                                     name:
@@ -1461,6 +1641,12 @@ function Projects() {
                                       "Lieu",
                                     description:
                                       location.description || "",
+                                    imageReferences:
+                                      resolveSelectedImages(
+                                        location,
+                                        "location",
+                                        scene.locationImageReferences || {}
+                                      ),
                                   })),
                                   movements,
                                   action: scene.action || "",
@@ -1629,61 +1815,122 @@ function Projects() {
                 🎭 Personnages
               </h3>
 
-              {
-                selectedProject
-                  .characters.length ===
-                0 ? (
-                  <p>
-                    Aucun personnage.
-                  </p>
-                ) : (
-                  selectedProject.characters.map(
-                    (
-                      character
-                    ) => (
-                      <label
-                        key={
-                          character.id
-                        }
-                        style={{
-                          display:
-                            "block",
-                          margin:
-                            "8px 0",
-                        }}
-                      >
+              {selectedProject.characters.length === 0 ? (
+                <p>Aucun personnage.</p>
+              ) : (
+                selectedProject.characters.map((character) => {
+                  const checked = selectedCharacterIds.some(
+                    (id) => String(id) === String(character.id)
+                  );
+                  const images = getLibraryImages(character, "character");
+                  const selectedIds =
+                    selectedCharacterImages[String(character.id)] || [];
 
+                  return (
+                    <div
+                      key={character.id}
+                      style={{
+                        margin: "10px 0 16px",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <label style={{ display: "block" }}>
                         <input
                           type="checkbox"
-                          checked={selectedCharacterIds.some(
-                            (
-                              id
-                            ) =>
-                              String(
-                                id
-                              ) ===
-                              String(
-                                character.id
-                              )
-                          )}
-                          onChange={() =>
-                            toggleCharacter(
-                              character.id
-                            )
-                          }
+                          checked={checked}
+                          onChange={() => toggleCharacter(character.id)}
                         />
-
-                        {" "}
-                        🎭{" "}
-                        {
-                          character.name
-                        }
-
+                        {" "}🎭 {character.name}
                       </label>
-                    )
-                  )
-                )
-              }
+
+                      {checked && (
+                        <div style={{ marginTop: "10px" }}>
+                          <strong>🖼️ Images de {character.name}</strong>
+                          <p style={{ margin: "4px 0 8px" }}>
+                            Choisissez une ou plusieurs images de ce personnage.
+                          </p>
+
+                          {images.length === 0 ? (
+                            <p style={{ fontSize: "14px" }}>
+                              ℹ️ Aucune image disponible dans la Bibliothèque pour ce personnage.
+                            </p>
+                          ) : (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "10px",
+                              }}
+                            >
+                              {images.map((image) => {
+                                const imageId = getImageId(image);
+                                const selected = selectedIds.some(
+                                  (id) => String(id) === String(imageId)
+                                );
+
+                                return (
+                                  <button
+                                    type="button"
+                                    key={String(imageId)}
+                                    onClick={() =>
+                                      toggleCharacterImage(character.id, image)
+                                    }
+                                    style={{
+                                      padding: "4px",
+                                      border: selected
+                                        ? "3px solid #2563eb"
+                                        : "1px solid #ccc",
+                                      borderRadius: "8px",
+                                      background: selected ? "#eef4ff" : "white",
+                                      cursor: "pointer",
+                                    }}
+                                    title={
+                                      selected
+                                        ? "Image sélectionnée — cliquer pour retirer"
+                                        : "Sélectionner cette image"
+                                    }
+                                  >
+                                    {image?.url ? (
+                                      <img
+                                        src={image.url}
+                                        alt={image.name || character.name}
+                                        style={{
+                                          width: "110px",
+                                          height: "90px",
+                                          objectFit: "cover",
+                                          display: "block",
+                                          borderRadius: "5px",
+                                        }}
+                                      />
+                                    ) : (
+                                      <div
+                                        style={{
+                                          width: "110px",
+                                          height: "90px",
+                                          display: "grid",
+                                          placeItems: "center",
+                                        }}
+                                      >
+                                        🖼️
+                                      </div>
+                                    )}
+                                    <small>
+                                      {selected ? "✓ " : ""}
+                                      {image?.name || "Image"}
+                                    </small>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
 
               {/* LIEUX */}
 
@@ -1692,66 +1939,125 @@ function Projects() {
               </h3>
 
               <p>
-                Plusieurs lieux peuvent
-                être utilisés dans la même
-                scène.
+                Plusieurs lieux peuvent être utilisés dans la même scène.
               </p>
 
-              {
-                selectedProject
-                  .locations.length ===
-                0 ? (
-                  <p>
-                    Aucun lieu.
-                  </p>
-                ) : (
-                  selectedProject.locations.map(
-                    (
-                      location
-                    ) => (
-                      <label
-                        key={
-                          location.id
-                        }
-                        style={{
-                          display:
-                            "block",
-                          margin:
-                            "8px 0",
-                        }}
-                      >
+              {selectedProject.locations.length === 0 ? (
+                <p>Aucun lieu.</p>
+              ) : (
+                selectedProject.locations.map((location) => {
+                  const checked = selectedLocationIds.some(
+                    (id) => String(id) === String(location.id)
+                  );
+                  const images = getLibraryImages(location, "location");
+                  const selectedIds =
+                    selectedLocationImages[String(location.id)] || [];
 
+                  return (
+                    <div
+                      key={location.id}
+                      style={{
+                        margin: "10px 0 16px",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <label style={{ display: "block" }}>
                         <input
                           type="checkbox"
-                          checked={selectedLocationIds.some(
-                            (
-                              id
-                            ) =>
-                              String(
-                                id
-                              ) ===
-                              String(
-                                location.id
-                              )
-                          )}
-                          onChange={() =>
-                            toggleLocation(
-                              location.id
-                            )
-                          }
+                          checked={checked}
+                          onChange={() => toggleLocation(location.id)}
                         />
-
-                        {" "}
-                        🌍{" "}
-                        {
-                          location.name
-                        }
-
+                        {" "}🌍 {location.name}
                       </label>
-                    )
-                  )
-                )
-              }
+
+                      {checked && (
+                        <div style={{ marginTop: "10px" }}>
+                          <strong>🖼️ Images de {location.name}</strong>
+                          <p style={{ margin: "4px 0 8px" }}>
+                            Choisissez une ou plusieurs images de ce lieu.
+                          </p>
+
+                          {images.length === 0 ? (
+                            <p style={{ fontSize: "14px" }}>
+                              ℹ️ Aucune image disponible dans la Bibliothèque pour ce lieu.
+                            </p>
+                          ) : (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "10px",
+                              }}
+                            >
+                              {images.map((image) => {
+                                const imageId = getImageId(image);
+                                const selected = selectedIds.some(
+                                  (id) => String(id) === String(imageId)
+                                );
+
+                                return (
+                                  <button
+                                    type="button"
+                                    key={String(imageId)}
+                                    onClick={() =>
+                                      toggleLocationImage(location.id, image)
+                                    }
+                                    style={{
+                                      padding: "4px",
+                                      border: selected
+                                        ? "3px solid #2563eb"
+                                        : "1px solid #ccc",
+                                      borderRadius: "8px",
+                                      background: selected ? "#eef4ff" : "white",
+                                      cursor: "pointer",
+                                    }}
+                                    title={
+                                      selected
+                                        ? "Image sélectionnée — cliquer pour retirer"
+                                        : "Sélectionner cette image"
+                                    }
+                                  >
+                                    {image?.url ? (
+                                      <img
+                                        src={image.url}
+                                        alt={image.name || location.name}
+                                        style={{
+                                          width: "110px",
+                                          height: "90px",
+                                          objectFit: "cover",
+                                          display: "block",
+                                          borderRadius: "5px",
+                                        }}
+                                      />
+                                    ) : (
+                                      <div
+                                        style={{
+                                          width: "110px",
+                                          height: "90px",
+                                          display: "grid",
+                                          placeItems: "center",
+                                        }}
+                                      >
+                                        🖼️
+                                      </div>
+                                    )}
+                                    <small>
+                                      {selected ? "✓ " : ""}
+                                      {image?.name || "Image"}
+                                    </small>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
 
               {/* MOUVEMENTS */}
 
