@@ -52,15 +52,9 @@ function Projects() {
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
 
-  // Images choisies pour chaque personnage de la scène.
-  // Format : { [characterId]: [imageId, ...] }
-  const [selectedCharacterImages, setSelectedCharacterImages] =
-    useState({});
-
-  // Images choisies pour chaque lieu de la scène.
-  // Format : { [locationId]: [imageId, ...] }
-  const [selectedLocationImages, setSelectedLocationImages] =
-    useState({});
+  // Images de référence sélectionnées pour les personnages et les lieux.
+  const [selectedCharacterImageReferences, setSelectedCharacterImageReferences] = useState({});
+  const [selectedLocationImageReferences, setSelectedLocationImageReferences] = useState({});
 
   /*
    * Mouvements de la scène.
@@ -117,111 +111,80 @@ function Projects() {
     setShowReferenceProposals(false);
   };
 
+  const getReferenceImages = (item) => {
+    if (!item) return [];
+    if (Array.isArray(item.images)) return item.images;
+    if (Array.isArray(item.imageReferences)) return item.imageReferences;
+    if (Array.isArray(item.imageRefs)) return item.imageRefs;
+    if (item.image) return [item.image];
+    if (item.imageUrl) return [{ id: `${item.id}-image`, name: item.name || "Image", url: item.imageUrl }];
+    return [];
+  };
+
+  const toggleReferenceImage = (type, ownerId, image) => {
+    const setter = type === "character"
+      ? setSelectedCharacterImageReferences
+      : setSelectedLocationImageReferences;
+    setter((previous) => {
+      const key = String(ownerId);
+      const current = Array.isArray(previous[key]) ? previous[key] : [];
+      const imageId = String(image?.id ?? image?.url ?? image?.name ?? "");
+      const exists = current.some((ref) => String(ref?.id ?? ref?.url ?? ref?.name ?? "") === imageId);
+      return {
+        ...previous,
+        [key]: exists
+          ? current.filter((ref) => String(ref?.id ?? ref?.url ?? ref?.name ?? "") !== imageId)
+          : [...current, image],
+      };
+    });
+  };
+
+  const normalizeReferenceImages = (value) => {
+    if (!Array.isArray(value)) return [];
+    return value.filter(Boolean).map((image) => ({
+      id: image.id ?? null,
+      name: image.name ?? image.title ?? "Image de référence",
+      url: image.url ?? image.src ?? image.imageUrl ?? null,
+    }));
+  };
+
   const prepareSceneForAI = (scene) => {
-    const characters = (scene.characterIds || [])
-      .map((id) =>
-        (selectedProject?.characters || []).find(
-          (x) => String(x.id) === String(id)
-        )
-      )
-      .filter(Boolean)
-      .map((x) => ({
+    const savedCharacterRefs = scene.characterImageReferences || {};
+    const savedLocationRefs = scene.locationImageReferences || {};
+
+    const characters = (scene.characterIds || []).map((id) =>
+      (selectedProject?.characters || []).find((x) => String(x.id) === String(id))
+    ).filter(Boolean).map((x) => {
+      const refs = normalizeReferenceImages(savedCharacterRefs[String(x.id)] || []);
+      return {
         id: x.id,
         name: x.name || x.title || "Personnage",
         description: x.description || "",
-        imageReferences: resolveSelectedImages(
-          x,
-          "character",
-          scene.characterImageReferences || {}
-        ),
-      }));
-
-    const locations = (scene.locationIds || [])
-      .map((id) =>
-        (selectedProject?.locations || []).find(
-          (x) => String(x.id) === String(id)
-        )
-      )
-      .filter(Boolean)
-      .map((x) => ({
-        id: x.id,
-        name: x.name || x.title || "Lieu",
-        description: x.description || "",
-        imageReferences: resolveSelectedImages(
-          x,
-          "location",
-          scene.locationImageReferences || {}
-        ),
-      }));
-
-    const steps =
-      scene.movementSteps ||
-      scene.movements ||
-      scene.movementIds ||
-      [];
-
-    const movements = steps.map((step) => {
-      const id =
-        typeof step === "object" ? step.id : step;
-      const movement =
-        (selectedProject?.movements || []).find(
-          (x) => String(x.id) === String(id)
-        );
-      const ref =
-        typeof step === "object"
-          ? step.referenceVideo || null
-          : null;
-
-      return {
-        id: movement?.id || id || null,
-        name:
-          movement?.name ||
-          movement?.title ||
-          (typeof step === "object" && step.name) ||
-          "Mouvement",
-        description:
-          movement?.description ||
-          (typeof step === "object" && step.description) ||
-          "",
-        destination:
-          (typeof step === "object" && step.destination) ||
-          movement?.destination ||
-          null,
-        referenceVideo: ref
-          ? {
-              available: true,
-              type: ref.type || "unknown",
-              name:
-                ref.name ||
-                ref.title ||
-                "Référence vidéo",
-              source: ref.source || null,
-              url: ref.url || null,
-            }
-          : { available: false },
+        imageReferences: refs,
       };
     });
 
-    return {
-      version: "1.0",
-      preparedAt: new Date().toISOString(),
-      scene: {
-        id: scene.id,
-        title: scene.title || "",
-        description: scene.description || "",
-        duration: scene.duration || "",
-      },
-      characters,
-      locations,
-      movements,
-      action: scene.action || "",
-      dialogue: scene.dialogue || "",
-      visualStyle: {
-        text: scene.style?.text || scene.style || "",
-        images: scene.style?.images || scene.styleImages || [],
-      },
-      referenceImages: scene.style?.images || scene.styleImages || [],
-    };
+    const locations = (scene.locationIds || []).map((id) =>
+      (selectedProject?.locations || []).find((x) => String(x.id) === String(id))
+    ).filter(Boolean).map((x) => {
+      const refs = normalizeReferenceImages(savedLocationRefs[String(x.id)] || []);
+      return {
+        id: x.id,
+        name: x.name || x.title || "Lieu",
+        description: x.description || "",
+        imageReferences: refs,
+      };
+    });
+
+    const steps = scene.movementSteps || scene.movements || scene.movementIds || [];
+    const movements = steps.map((step) => {
+      const id = typeof step === "object" ? step.id : step;
+      const movement = (selectedProject?.movements || []).find((x) => String(x.id) === String(id));
+      const ref = typeof step === "object" ? step.referenceVideo || null : null;
+      return { id: movement?.id || id || null, name: movement?.name || movement?.title || (typeof step === "object" && step.name) || "Mouvement", description: movement?.description || (typeof step === "object" && step.description) || "", destination: (typeof step === "object" && step.destination) || movement?.destination || null, referenceVideo: ref ? { available:true, type:ref.type||"unknown", name:ref.name||ref.title||"Référence vidéo", source:ref.source||null, url:ref.url||null } : { available:false } };
+    });
+
+    return { version:"1.0", preparedAt:new Date().toISOString(), scene:{ id:scene.id, title:scene.title||"", description:scene.description||"", duration:scene.duration||"" }, characters, locations, movements, action:scene.action||"", dialogue:scene.dialogue||"", visualStyle:scene.style||"", referenceImages:scene.styleImages||[] };
   };
 
   function createProject() {
@@ -351,8 +314,8 @@ function Projects() {
 
     setSelectedCharacterIds([]);
     setSelectedLocationIds([]);
-    setSelectedCharacterImages({});
-    setSelectedLocationImages({});
+    setSelectedCharacterImageReferences({});
+    setSelectedLocationImageReferences({});
     setSceneMovements([]);
 
     setEditingScene(null);
@@ -379,11 +342,15 @@ function Projects() {
       scene.characterIds || []
     );
 
+    setSelectedCharacterImageReferences(scene.characterImageReferences || {});
+
     // Compatibilité avec les anciennes scènes
     if (Array.isArray(scene.locationIds)) {
       setSelectedLocationIds(
         scene.locationIds
       );
+
+      setSelectedLocationImageReferences(scene.locationImageReferences || {});
     } else if (
       scene.locationId !== undefined &&
       scene.locationId !== null
@@ -394,14 +361,6 @@ function Projects() {
     } else {
       setSelectedLocationIds([]);
     }
-
-    // Restaurer les images choisies dans la scène.
-    setSelectedCharacterImages(
-      scene.characterImageReferences || {}
-    );
-    setSelectedLocationImages(
-      scene.locationImageReferences || {}
-    );
 
     /*
      * Nouveau format des mouvements :
@@ -505,106 +464,6 @@ function Projects() {
           locationId,
         ];
       }
-    );
-  }
-
-  // ==========================
-  // IMAGES DES PERSONNAGES / LIEUX
-  // ==========================
-
-  function getLibraryImages(item, type) {
-    if (!item) return [];
-
-    const directImages =
-      item.images ||
-      item.imageReferences ||
-      item.imageReference ||
-      null;
-
-    if (Array.isArray(directImages)) {
-      return directImages.filter(Boolean);
-    }
-
-    if (directImages && typeof directImages === "object") {
-      return [directImages];
-    }
-
-    // Compatibilité avec une bibliothèque qui stocke les images
-    // au niveau du projet avec un ownerId / characterId / locationId.
-    const projectImages = Array.isArray(selectedProject?.images)
-      ? selectedProject.images
-      : [];
-
-    const ownerKey = type === "character"
-      ? "characterId"
-      : "locationId";
-
-    return projectImages.filter((image) =>
-      String(image?.[ownerKey] ?? image?.ownerId ?? "") ===
-      String(item.id)
-    );
-  }
-
-  function getImageId(image) {
-    return image?.id ?? image?.url ?? image?.name;
-  }
-
-  function toggleCharacterImage(characterId, image) {
-    const imageId = getImageId(image);
-    if (imageId == null) return;
-
-    setSelectedCharacterImages((previous) => {
-      const key = String(characterId);
-      const current = Array.isArray(previous[key])
-        ? previous[key]
-        : [];
-      const exists = current.some(
-        (id) => String(id) === String(imageId)
-      );
-
-      return {
-        ...previous,
-        [key]: exists
-          ? current.filter(
-              (id) => String(id) !== String(imageId)
-            )
-          : [...current, imageId],
-      };
-    });
-  }
-
-  function toggleLocationImage(locationId, image) {
-    const imageId = getImageId(image);
-    if (imageId == null) return;
-
-    setSelectedLocationImages((previous) => {
-      const key = String(locationId);
-      const current = Array.isArray(previous[key])
-        ? previous[key]
-        : [];
-      const exists = current.some(
-        (id) => String(id) === String(imageId)
-      );
-
-      return {
-        ...previous,
-        [key]: exists
-          ? current.filter(
-              (id) => String(id) !== String(imageId)
-            )
-          : [...current, imageId],
-      };
-    });
-  }
-
-  function resolveSelectedImages(item, type, selectedMap) {
-    const images = getLibraryImages(item, type);
-    const selectedIds = selectedMap[String(item.id)] || [];
-
-    return images.filter((image) =>
-      selectedIds.some(
-        (id) => String(id) === String(getImageId(image))
-      )
     );
   }
 
@@ -800,12 +659,14 @@ function Projects() {
       locationIds:
         selectedLocationIds,
 
-      // Images sélectionnées pour les personnages et les lieux.
+      // Les objets image sont conservés directement dans la scène.
+      // Cela garantit que Préparer pour l’IA peut reconstruire imageReferences
+      // même si la bibliothèque est modifiée ensuite.
       characterImageReferences:
-        selectedCharacterImages,
+        selectedCharacterImageReferences,
 
       locationImageReferences:
-        selectedLocationImages,
+        selectedLocationImageReferences,
 
       /*
        * Nouveau système.
@@ -1627,12 +1488,6 @@ function Projects() {
                                       "Personnage",
                                     description:
                                       character.description || "",
-                                    imageReferences:
-                                      resolveSelectedImages(
-                                        character,
-                                        "character",
-                                        scene.characterImageReferences || {}
-                                      ),
                                   })),
                                   locations: locations.map((location) => ({
                                     name:
@@ -1641,12 +1496,6 @@ function Projects() {
                                       "Lieu",
                                     description:
                                       location.description || "",
-                                    imageReferences:
-                                      resolveSelectedImages(
-                                        location,
-                                        "location",
-                                        scene.locationImageReferences || {}
-                                      ),
                                   })),
                                   movements,
                                   action: scene.action || "",
@@ -1815,122 +1664,59 @@ function Projects() {
                 🎭 Personnages
               </h3>
 
-              {selectedProject.characters.length === 0 ? (
-                <p>Aucun personnage.</p>
-              ) : (
-                selectedProject.characters.map((character) => {
-                  const checked = selectedCharacterIds.some(
-                    (id) => String(id) === String(character.id)
-                  );
-                  const images = getLibraryImages(character, "character");
-                  const selectedIds =
-                    selectedCharacterImages[String(character.id)] || [];
+              {
+                selectedProject
+                  .characters.length ===
+                0 ? (
+                  <p>
+                    Aucun personnage.
+                  </p>
+                ) : (
+                  selectedProject.characters.map((character) => {
+                    const images = getReferenceImages(character);
+                    const selectedImages = selectedCharacterImageReferences[String(character.id)] || [];
+                    return (
+                      <div key={character.id} style={{ margin: "8px 0 16px" }}>
+                        <label style={{ display: "block" }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCharacterIds.some((id) => String(id) === String(character.id))}
+                            onChange={() => toggleCharacter(character.id)}
+                          />
+                          {" "}🎭 {character.name}
+                        </label>
 
-                  return (
-                    <div
-                      key={character.id}
-                      style={{
-                        margin: "10px 0 16px",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                      }}
-                    >
-                      <label style={{ display: "block" }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleCharacter(character.id)}
-                        />
-                        {" "}🎭 {character.name}
-                      </label>
-
-                      {checked && (
-                        <div style={{ marginTop: "10px" }}>
-                          <strong>🖼️ Images de {character.name}</strong>
-                          <p style={{ margin: "4px 0 8px" }}>
-                            Choisissez une ou plusieurs images de ce personnage.
-                          </p>
-
-                          {images.length === 0 ? (
-                            <p style={{ fontSize: "14px" }}>
-                              ℹ️ Aucune image disponible dans la Bibliothèque pour ce personnage.
-                            </p>
-                          ) : (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "10px",
-                              }}
-                            >
-                              {images.map((image) => {
-                                const imageId = getImageId(image);
-                                const selected = selectedIds.some(
-                                  (id) => String(id) === String(imageId)
-                                );
-
-                                return (
-                                  <button
-                                    type="button"
-                                    key={String(imageId)}
-                                    onClick={() =>
-                                      toggleCharacterImage(character.id, image)
-                                    }
-                                    style={{
-                                      padding: "4px",
-                                      border: selected
-                                        ? "3px solid #2563eb"
-                                        : "1px solid #ccc",
-                                      borderRadius: "8px",
-                                      background: selected ? "#eef4ff" : "white",
-                                      cursor: "pointer",
-                                    }}
-                                    title={
-                                      selected
-                                        ? "Image sélectionnée — cliquer pour retirer"
-                                        : "Sélectionner cette image"
-                                    }
-                                  >
-                                    {image?.url ? (
-                                      <img
-                                        src={image.url}
-                                        alt={image.name || character.name}
-                                        style={{
-                                          width: "110px",
-                                          height: "90px",
-                                          objectFit: "cover",
-                                          display: "block",
-                                          borderRadius: "5px",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div
-                                        style={{
-                                          width: "110px",
-                                          height: "90px",
-                                          display: "grid",
-                                          placeItems: "center",
-                                        }}
-                                      >
-                                        🖼️
-                                      </div>
-                                    )}
-                                    <small>
-                                      {selected ? "✓ " : ""}
-                                      {image?.name || "Image"}
-                                    </small>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                        {selectedCharacterIds.some((id) => String(id) === String(character.id)) && (
+                          <div style={{ marginLeft: "28px", marginTop: "8px" }}>
+                            <strong>🖼️ Images de {character.name}</strong>
+                            {images.length === 0 ? (
+                              <p style={{ fontSize: "13px" }}>Aucune image disponible.</p>
+                            ) : (
+                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
+                                {images.map((image, index) => {
+                                  const imageId = String(image?.id ?? image?.url ?? image?.name ?? index);
+                                  const selected = selectedImages.some((ref) => String(ref?.id ?? ref?.url ?? ref?.name ?? "") === imageId);
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={imageId}
+                                      onClick={() => toggleReferenceImage("character", character.id, image)}
+                                      style={{ padding: "4px", border: selected ? "3px solid #2563eb" : "1px solid #ccc", borderRadius: "8px", background: "white" }}
+                                    >
+                                      {image?.url ? <img src={image.url} alt={image.name || `Image ${index + 1}`} style={{ width: "90px", height: "70px", objectFit: "cover", borderRadius: "5px", display: "block" }} /> : <span>{image?.name || `Image ${index + 1}`}</span>}
+                                      {selected && <small style={{ display: "block" }}>✓ sélectionnée</small>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )
+              }
 
               {/* LIEUX */}
 
@@ -1939,125 +1725,64 @@ function Projects() {
               </h3>
 
               <p>
-                Plusieurs lieux peuvent être utilisés dans la même scène.
+                Plusieurs lieux peuvent
+                être utilisés dans la même
+                scène.
               </p>
 
-              {selectedProject.locations.length === 0 ? (
-                <p>Aucun lieu.</p>
-              ) : (
-                selectedProject.locations.map((location) => {
-                  const checked = selectedLocationIds.some(
-                    (id) => String(id) === String(location.id)
-                  );
-                  const images = getLibraryImages(location, "location");
-                  const selectedIds =
-                    selectedLocationImages[String(location.id)] || [];
+              {
+                selectedProject
+                  .locations.length ===
+                0 ? (
+                  <p>
+                    Aucun lieu.
+                  </p>
+                ) : (
+                  selectedProject.locations.map((location) => {
+                    const images = getReferenceImages(location);
+                    const selectedImages = selectedLocationImageReferences[String(location.id)] || [];
+                    return (
+                      <div key={location.id} style={{ margin: "8px 0 16px" }}>
+                        <label style={{ display: "block" }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedLocationIds.some((id) => String(id) === String(location.id))}
+                            onChange={() => toggleLocation(location.id)}
+                          />
+                          {" "}🌍 {location.name}
+                        </label>
 
-                  return (
-                    <div
-                      key={location.id}
-                      style={{
-                        margin: "10px 0 16px",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                      }}
-                    >
-                      <label style={{ display: "block" }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleLocation(location.id)}
-                        />
-                        {" "}🌍 {location.name}
-                      </label>
-
-                      {checked && (
-                        <div style={{ marginTop: "10px" }}>
-                          <strong>🖼️ Images de {location.name}</strong>
-                          <p style={{ margin: "4px 0 8px" }}>
-                            Choisissez une ou plusieurs images de ce lieu.
-                          </p>
-
-                          {images.length === 0 ? (
-                            <p style={{ fontSize: "14px" }}>
-                              ℹ️ Aucune image disponible dans la Bibliothèque pour ce lieu.
-                            </p>
-                          ) : (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "10px",
-                              }}
-                            >
-                              {images.map((image) => {
-                                const imageId = getImageId(image);
-                                const selected = selectedIds.some(
-                                  (id) => String(id) === String(imageId)
-                                );
-
-                                return (
-                                  <button
-                                    type="button"
-                                    key={String(imageId)}
-                                    onClick={() =>
-                                      toggleLocationImage(location.id, image)
-                                    }
-                                    style={{
-                                      padding: "4px",
-                                      border: selected
-                                        ? "3px solid #2563eb"
-                                        : "1px solid #ccc",
-                                      borderRadius: "8px",
-                                      background: selected ? "#eef4ff" : "white",
-                                      cursor: "pointer",
-                                    }}
-                                    title={
-                                      selected
-                                        ? "Image sélectionnée — cliquer pour retirer"
-                                        : "Sélectionner cette image"
-                                    }
-                                  >
-                                    {image?.url ? (
-                                      <img
-                                        src={image.url}
-                                        alt={image.name || location.name}
-                                        style={{
-                                          width: "110px",
-                                          height: "90px",
-                                          objectFit: "cover",
-                                          display: "block",
-                                          borderRadius: "5px",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div
-                                        style={{
-                                          width: "110px",
-                                          height: "90px",
-                                          display: "grid",
-                                          placeItems: "center",
-                                        }}
-                                      >
-                                        🖼️
-                                      </div>
-                                    )}
-                                    <small>
-                                      {selected ? "✓ " : ""}
-                                      {image?.name || "Image"}
-                                    </small>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                        {selectedLocationIds.some((id) => String(id) === String(location.id)) && (
+                          <div style={{ marginLeft: "28px", marginTop: "8px" }}>
+                            <strong>🖼️ Images de {location.name}</strong>
+                            {images.length === 0 ? (
+                              <p style={{ fontSize: "13px" }}>Aucune image disponible.</p>
+                            ) : (
+                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
+                                {images.map((image, index) => {
+                                  const imageId = String(image?.id ?? image?.url ?? image?.name ?? index);
+                                  const selected = selectedImages.some((ref) => String(ref?.id ?? ref?.url ?? ref?.name ?? "") === imageId);
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={imageId}
+                                      onClick={() => toggleReferenceImage("location", location.id, image)}
+                                      style={{ padding: "4px", border: selected ? "3px solid #2563eb" : "1px solid #ccc", borderRadius: "8px", background: "white" }}
+                                    >
+                                      {image?.url ? <img src={image.url} alt={image.name || `Image ${index + 1}`} style={{ width: "90px", height: "70px", objectFit: "cover", borderRadius: "5px", display: "block" }} /> : <span>{image?.name || `Image ${index + 1}`}</span>}
+                                      {selected && <small style={{ display: "block" }}>✓ sélectionnée</small>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )
+              }
 
               {/* MOUVEMENTS */}
 
