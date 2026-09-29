@@ -48,6 +48,12 @@ function Projects() {
   const [selectedCharacterIds, setSelectedCharacterIds] =
     useState([]);
 
+  // Images de référence de la bibliothèque choisies pour la scène.
+  const [selectedCharacterImageIds, setSelectedCharacterImageIds] =
+    useState({});
+  const [selectedLocationImageIds, setSelectedLocationImageIds] =
+    useState({});
+
   // Plusieurs lieux
   const [selectedLocationIds, setSelectedLocationIds] =
     useState([]);
@@ -108,13 +114,24 @@ function Projects() {
   };
 
   const prepareSceneForAI = (scene) => {
+    const savedCharacterImages = Object.fromEntries((scene.aiData?.characters || []).map((item) => [String(item.characterId), item.imageIds || []]));
+    const savedLocationImages = Object.fromEntries((scene.aiData?.locations || []).map((item) => [String(item.locationId), item.imageIds || []]));
+
     const characters = (scene.characterIds || []).map((id) =>
       (selectedProject?.characters || []).find((x) => String(x.id) === String(id))
-    ).filter(Boolean).map((x) => ({ id:x.id, name:x.name||x.title||"Personnage", description:x.description||"", imageReference:x.image||x.imageUrl||x.imageReference||null }));
+    ).filter(Boolean).map((x) => {
+      const ids = savedCharacterImages[String(x.id)] || [];
+      const images = (x.images || []).filter((image) => ids.some((id) => String(id) === String(image.id)));
+      return { id:x.id, name:x.name||x.title||"Personnage", description:x.description||"", imageReferences:images.map((image)=>({id:image.id,name:image.name||"Image",url:image.url||null})) };
+    });
 
     const locations = (scene.locationIds || []).map((id) =>
       (selectedProject?.locations || []).find((x) => String(x.id) === String(id))
-    ).filter(Boolean).map((x) => ({ id:x.id, name:x.name||x.title||"Lieu", description:x.description||"", imageReference:x.image||x.imageUrl||x.imageReference||null }));
+    ).filter(Boolean).map((x) => {
+      const ids = savedLocationImages[String(x.id)] || [];
+      const images = (x.images || []).filter((image) => ids.some((id) => String(id) === String(image.id)));
+      return { id:x.id, name:x.name||x.title||"Lieu", description:x.description||"", imageReferences:images.map((image)=>({id:image.id,name:image.name||"Image",url:image.url||null})) };
+    });
 
     const steps = scene.movementSteps || scene.movements || scene.movementIds || [];
     const movements = steps.map((step) => {
@@ -372,6 +389,15 @@ function Projects() {
     );
   }
 
+  function toggleCharacterImage(characterId, imageId) {
+    const key = String(characterId);
+    setSelectedCharacterImageIds((previous) => {
+      const current = previous[key] || [];
+      const exists = current.some((id) => String(id) === String(imageId));
+      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
+    });
+  }
+
   // ==========================
   // LIEUX
   // ==========================
@@ -399,6 +425,15 @@ function Projects() {
         ];
       }
     );
+  }
+
+  function toggleLocationImage(locationId, imageId) {
+    const key = String(locationId);
+    setSelectedLocationImageIds((previous) => {
+      const current = previous[key] || [];
+      const exists = current.some((id) => String(id) === String(imageId));
+      return { ...previous, [key]: exists ? current.filter((id) => String(id) !== String(imageId)) : [...current, imageId] };
+    });
   }
 
   // ==========================
@@ -612,6 +647,11 @@ function Projects() {
           (movement) =>
             movement.id
         ),
+
+      aiData: {
+        characters: selectedCharacterIds.map((id) => ({ characterId: id, imageIds: selectedCharacterImageIds[String(id)] || [] })),
+        locations: selectedLocationIds.map((id) => ({ locationId: id, imageIds: selectedLocationImageIds[String(id)] || [] })),
+      },
 
       style: {
         text:
