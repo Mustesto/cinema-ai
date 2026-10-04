@@ -42,6 +42,9 @@ function Projects() {
   const [preparedAiData, setPreparedAiData] = useState(null);
   const [aiTestLoading, setAiTestLoading] = useState(false);
   const [aiTestResult, setAiTestResult] = useState(null);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [generatedVideo, setGeneratedVideo] = useState(null);
+  const [videoError, setVideoError] = useState(null);
 
   const [showReferenceProposals, setShowReferenceProposals] = useState(false);
   const [referenceMovementIndex, setReferenceMovementIndex] = useState(null);
@@ -827,6 +830,85 @@ function Projects() {
       });
     } finally {
       setAiTestLoading(false);
+    }
+  }
+
+  function buildVideoPrompt(data) {
+    const characters = (data.characters || []).map((item) => item.name).filter(Boolean);
+    const locations = (data.locations || []).map((item) => item.name).filter(Boolean);
+    const movements = (data.movements || [])
+      .map((item) => `${item.name || "Mouvement"}${item.destination ? ` vers ${item.destination}` : ""}`)
+      .filter(Boolean);
+
+    return [
+      "Cinematic realistic live-action video.",
+      data.scene?.description ? `Scene: ${data.scene.description}.` : "",
+      characters.length ? `Characters: ${characters.join(", ")}.` : "",
+      locations.length ? `Location: ${locations.join(", ")}.` : "",
+      movements.length ? `Movement: ${movements.join("; ")}.` : "",
+      data.action ? `Action and staging: ${data.action}.` : "",
+      data.dialogue ? `Dialogue context: ${data.dialogue}.` : "",
+      data.visualStyle?.text ? `Visual style: ${data.visualStyle.text}.` : "",
+      "Natural human motion, coherent anatomy, realistic facial expression, subtle cinematic camera movement, cinematic lighting, high detail.",
+    ].filter(Boolean).join(" ");
+  }
+
+  async function generateVideo(scene) {
+    setVideoLoading(true);
+    setVideoError(null);
+    setGeneratedVideo(null);
+
+    try {
+      const preparedData = prepareSceneForAI(scene);
+      const data = await prepareSceneAssetsForBackend(preparedData);
+      const blobs = findBlobImages(data);
+
+      if (blobs.length > 0) {
+        throw new Error(`${blobs.length} image(s) utilisent encore une URL blob:.`);
+      }
+
+      const firstCharacterImage = (data.characters || [])
+        .flatMap((character) => character.imageReferences || [])
+        .find((image) => typeof image?.url === "string" && image.url.includes("/uploads/"));
+
+      const firstLocationImage = (data.locations || [])
+        .flatMap((location) => location.imageReferences || [])
+        .find((image) => typeof image?.url === "string" && image.url.includes("/uploads/"));
+
+      const imageUrl = firstCharacterImage?.url || firstLocationImage?.url;
+
+      if (!imageUrl) {
+        throw new Error("Aucune image de référence disponible pour générer la vidéo.");
+      }
+
+      const response = await fetch(`${AI_BACKEND_URL}/api/generate-video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl,
+          prompt: buildVideoPrompt(data),
+          duration: Math.min(5, Math.max(1, Number(data.scene?.duration) || 5)),
+          steps: 6,
+          guidanceScale: 1,
+          guidanceScale2: 1,
+          randomizeSeed: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || `Erreur HTTP ${response.status}`);
+      }
+
+      setGeneratedVideo(result.video || null);
+      setPreparedAiData(data);
+      setShowPreparedAiData(true);
+    } catch (error) {
+      console.error("Erreur génération vidéo:", error);
+      setVideoError(error.message || "Erreur inconnue pendant la génération vidéo.");
+    } finally {
+      setVideoLoading(false);
     }
   }
 
@@ -1835,6 +1917,39 @@ function Projects() {
                                 ? "⏳ Préparation..."
                                 : "🧠 Préparer pour l’IA"}
                             </button>
+
+                            <button
+                              type="button"
+                              onClick={() => generateVideo(scene)}
+                              disabled={videoLoading}
+                            >
+                              {videoLoading
+                                ? "⏳ Génération vidéo..."
+                                : "🎬 Générer la vidéo"}
+                            </button>
+
+                            {videoError && (
+                              <div style={{ marginTop: "12px", padding: "12px", border: "1px solid #c00", borderRadius: "8px" }}>
+                                <strong>🔴 Erreur vidéo</strong>
+                                <pre style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>{videoError}</pre>
+                              </div>
+                            )}
+
+                            {generatedVideo && (
+                              <div style={{ marginTop: "12px", padding: "12px", border: "1px solid #aaa", borderRadius: "8px" }}>
+                                <h4>🎬 Vidéo générée</h4>
+                                <video
+                                  controls
+                                  style={{ width: "100%", maxWidth: "720px", borderRadius: "8px" }}
+                                  src={generatedVideo.url || generatedVideo}
+                                />
+                                <p>
+                                  <a href={generatedVideo.url || generatedVideo} target="_blank" rel="noreferrer">
+                                    Ouvrir la vidéo
+                                  </a>
+                                </p>
+                              </div>
+                            )}
 
                             <button
                               type="button"
